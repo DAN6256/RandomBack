@@ -18,7 +18,7 @@ setupSwagger(app);
 // Connect to Database and Start Server
 connectDB().then(() => {
     app.listen(port, () => {
-        console.log(`🚀 Server running on port ${port}`);
+        console.log(`Server running on port ${port}`);
     });
 });
 
