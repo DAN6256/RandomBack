@@ -7,7 +7,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /borrow/request:
+ * /api/borrow/request:
  *   post:
  *     summary: Request equipment (Student only)
  *     description: Students can request to borrow equipment. Both the student and the admin will receive email notifications.
@@ -30,6 +30,12 @@ const router = express.Router();
  *               quantity:
  *                 type: integer
  *                 example: 2
+ *               description:
+ *                 type: string
+ *                 example: "Need this for a robotics project."
+ *               serialNumber:
+ *                 type: string
+ *                 example: "ABC1234"
  *     responses:
  *       201:
  *         description: Borrow request submitted successfully.
@@ -52,10 +58,10 @@ router.post('/request', authMiddleware, roleMiddleware(['Student']), BorrowContr
 
 /**
  * @swagger
- * /borrow/approve/{requestID}:
+ * /api/borrow/approve/{requestID}:
  *   put:
  *     summary: Approve a borrow request (Admin only)
- *     description: Admins can approve a pending borrow request. The student will receive a confirmation email with the return deadline.
+ *     description: Admins can approve a pending borrow request. The student will receive a confirmation email with the return deadline. The admin can also edit or add the description and serial number.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
@@ -74,11 +80,21 @@ router.post('/request', authMiddleware, roleMiddleware(['Student']), BorrowContr
  *             type: object
  *             required:
  *               - returnDate
+ *               - itemID
  *             properties:
  *               returnDate:
  *                 type: string
  *                 format: date-time
  *                 example: "2024-03-20T00:00:00Z"
+ *               itemID:
+ *                 type: integer
+ *                 example: 5
+ *               description:
+ *                 type: string
+ *                 example: "Updated description: Advanced motor component."
+ *               serialNumber:
+ *                 type: string
+ *                 example: "XYZ5678"
  *     responses:
  *       200:
  *         description: Borrow request approved successfully.
@@ -93,7 +109,7 @@ router.post('/request', authMiddleware, roleMiddleware(['Student']), BorrowContr
  *                 approvedRequest:
  *                   type: object
  *       400:
- *         description: Request not found or already processed.
+ *         description: Request not found, invalid itemID, or already processed.
  *       403:
  *         description: Unauthorized - User is not an admin.
  */
@@ -101,7 +117,7 @@ router.put('/approve/:requestID', authMiddleware, roleMiddleware(['Admin']), Bor
 
 /**
  * @swagger
- * /borrow/return/{requestID}:
+ * /api/borrow/return/{requestID}:
  *   put:
  *     summary: Return borrowed equipment (Admin only)
  *     description: Admins can mark a borrow request as returned.
@@ -137,7 +153,7 @@ router.put('/return/:requestID', authMiddleware, roleMiddleware(['Admin']), Borr
 
 /**
  * @swagger
- * /borrow/send-reminder:
+ * /api/borrow/send-reminder:
  *   post:
  *     summary: Send return reminders (Admin only)
  *     description: Admins can trigger email reminders for students who have not returned borrowed equipment one day before the due date.

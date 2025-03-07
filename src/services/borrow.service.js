@@ -2,7 +2,7 @@ const { BorrowRequest, BorrowedItem, Equipment, User, Reminder, AuditLog } = req
 const EmailService = require('./email.service');
 
 const BorrowService = {
-    requestEquipment: async (userID, equipmentID, description, quantity,serialNumber ) => {
+    requestEquipment: async (userID, equipmentID, description = null, quantity, serialNumber = null) => {
         const student = await User.findByPk(userID);
         if (!student || student.Role !== 'Student') throw new Error('Invalid student');
 
@@ -19,8 +19,8 @@ const BorrowService = {
         await BorrowedItem.create({
             RequestID: borrowRequest.RequestID,
             EquipmentID: equipmentID,
-            Description: description | null,
-            SerialNumber: serialNumber | null,
+            Description: description || null,
+            SerialNumber: null,
             Quantity: quantity
         });
 
@@ -37,14 +37,18 @@ const BorrowService = {
         return borrowRequest;
     },
 
-    approveRequest: async (requestID, returnDate, description=null,serialNumber=null,itemID) => {
+    approveRequest: async (requestID, returnDate, description = null, serialNumber = null, itemID) => {
         const request = await BorrowRequest.findByPk(requestID);
-        const item = await BorrowedItem.findByPk(itemID)
         if (!request || request.Status !== 'Pending') throw new Error('Invalid request');
 
-        item.Description =description;
-        item.SerialNumber = serialNumber;
+        const item = await BorrowedItem.findByPk(itemID);
+        if (!item) throw new Error('Invalid item ID');
+
+        // Update only if the admin provides new values
+        if (description) item.Description = description;
+        if (serialNumber) item.SerialNumber = serialNumber;
         await item.save();
+
         request.Status = 'Approved';
         request.ReturnDate = returnDate;
         await request.save();

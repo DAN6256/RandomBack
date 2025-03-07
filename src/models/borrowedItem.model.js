@@ -26,13 +26,12 @@ const BorrowedItem = sequelize.define('BorrowedItem', {
         }
     },
     Description: {
-        type: DataTypes.TEXT,
+        type: DataTypes.STRING,
         allowNull: true
     },
     SerialNumber: {
         type: DataTypes.STRING,
-        allowNull: true,
-        unique: false
+        allowNull: true
     },
     Quantity: {
         type: DataTypes.INTEGER,
