@@ -5,10 +5,9 @@ const models = require('./src/models'); // Import models to register relationshi
 
 
 // Import routes
+const equipmentRoutes = require('./src/routes/equipment.routes');
 const authRoutes = require('./src/routes/auth.routes');
-//const userRoutes = require('./src/routes/user.routes');
-//const borrowRequestRoutes = require('./src/routes/borrowRequest.routes');
-//const equipmentRoutes = require('./src/routes/equipment.routes');
+const borrowRoutes = require('./src/routes/borrow.routes');
 
 const app = express();
 const port = 3000;
@@ -17,9 +16,9 @@ app.use(express.json());
 
 // Register API routes
 app.use('/api/auth', authRoutes);
-//app.use('/api/users', userRoutes);
-//app.use('/api/borrow-requests', borrowRequestRoutes);
-//app.use('/api/equipment', equipmentRoutes);
+app.use('/api/equipment', equipmentRoutes);
+app.use('/api/borrow', borrowRoutes);
+
 
 // Setup Swagger UI
 setupSwagger(app);

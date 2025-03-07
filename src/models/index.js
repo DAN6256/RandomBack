@@ -27,7 +27,7 @@ AuditLog.belongsTo(BorrowRequest, { foreignKey: 'RequestID' });
 
 // Export all models and Sequelize instance
 module.exports = {
-    sequelize, // Ensure this is exported
+    sequelize, 
     User,
     Equipment,
     BorrowRequest,
