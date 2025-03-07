@@ -1,4 +1,4 @@
-//Dummy
+
 const express = require('express');
 const router = express.Router();
 const User = require("../models/user.model");
@@ -32,6 +32,7 @@ app.use(bodyParser.json());
  *             required:
  *               - email
  *               - password
+ *               - Name
  *             properties:
  *               email:
  *                 type: string
@@ -39,6 +40,9 @@ app.use(bodyParser.json());
  *               password:
  *                 type: string
  *                 example: Password123
+ *               name:
+ *                 type: string
+ *                 example: Kwaku Asare
  *     responses:
  *       200:
  *         description: Successful login
@@ -102,6 +106,12 @@ router.get("/user/:email", authenticateUser, async (req, res) => {
  *               password:
  *                 type: string
  *                 example: Password123
+ *               name:
+ *                 type: string
+ *                 example: Kwaku Asare
+ *               role:
+ *                 type: string
+ *                 example: Student
  *     responses:
  *       201:
  *         description: Successful creation of account

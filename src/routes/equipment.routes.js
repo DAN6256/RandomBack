@@ -7,7 +7,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /equipment/:
+ * /api/equipment/:
  *   post:
  *     summary: Add new equipment (Admin only)
  *     description: Admins can add new equipment to the system.
@@ -48,7 +48,7 @@ router.post('/', authMiddleware, roleMiddleware(['Admin']), EquipmentController.
 
 /**
  * @swagger
- * /equipment/{equipmentID}:
+ * /api/equipment/{equipmentID}:
  *   put:
  *     summary: Update equipment details (Admin only)
  *     description: Admins can update existing equipment details.
@@ -100,7 +100,7 @@ router.put('/:equipmentID', authMiddleware, roleMiddleware(['Admin']), Equipment
 
 /**
  * @swagger
- * /equipment/{equipmentID}:
+ * /api/equipment/{equipmentID}:
  *   delete:
  *     summary: Delete equipment (Admin only)
  *     description: Admins can delete equipment from the system.
@@ -134,7 +134,7 @@ router.delete('/:equipmentID', authMiddleware, roleMiddleware(['Admin']), Equipm
 
 /**
  * @swagger
- * /equipment:
+ * /api/equipment:
  *   get:
  *     summary: Get all equipment
  *     description: Retrieve a list of all equipment in the system.
@@ -157,7 +157,7 @@ router.get('/', authMiddleware, EquipmentController.getAllEquipment);
 
 /**
  * @swagger
- * /equipment/{equipmentID}:
+ * /api/equipment/{equipmentID}:
  *   get:
  *     summary: Get specific equipment details
  *     description: Retrieve details of a specific equipment item.
