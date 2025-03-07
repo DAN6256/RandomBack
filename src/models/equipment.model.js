@@ -11,15 +11,7 @@ const Equipment = sequelize.define('Equipment', {
         type: DataTypes.STRING,
         allowNull: false
     },
-    Description: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
-    SerialNumber: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        unique: false
-    }
+    
 }, {
     timestamps: false
 });
