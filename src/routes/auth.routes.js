@@ -1,14 +1,22 @@
 //Dummy
 const express = require('express');
 const router = express.Router();
-
-const admin = require("firebase-admin");
 const User = require("../models/user.model");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const serviceAccount = require("./firebase-admin.json"); //firebase admin sdk import
+const admin = require("../config/firebase");
+const authenticateUser = require("../middlewares/auth.middleware");
+
+
+const app = express();
+
+app.use(express.json());
+
+app.use(cors());
+app.use(bodyParser.json());
 
 /**
+ * 
  * @swagger
  * /api/auth/login:
  *   post:
@@ -44,9 +52,32 @@ const serviceAccount = require("./firebase-admin.json"); //firebase admin sdk im
  *       401:
  *         description: Unauthorized - Invalid credentials
  */
-router.post('/login', async(req, res) => {
-    res.json({ token: 'fake-jwt-token' });
-});
+// router.post('/login', async(req, res) => {
+//     res.json({ token: 'fake-jwt-token' });
+// });
+
+router.get("/user/:email", authenticateUser, async (req, res) => {
+    const { email } = req.params;
+  
+    try {
+      // Fetch user from Firebase Authentication
+      const userRecord = await admin.auth().getUserByEmail(email);
+  
+      // Fetch user details from MySQL database
+      const dbUser = await User.findOne({ where: { email } });
+  
+      if (!dbUser) {
+        return res.status(404).json({ message: "User not found in database" });
+      }
+  
+      res.status(200).json({
+        firebaseUser: userRecord,
+        dbUser,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching user", error: error.message });
+    }
+  });
 
 /**
  * @swagger
@@ -87,7 +118,10 @@ router.post('/login', async(req, res) => {
 router.post('/signup', async(req, res)=>{
     const { email, password, name, role } = req.body;
 
+    console.log(req.body)
+
     try {
+          
       const userRecord = await admin.auth().createUser({
         email,
         password,
@@ -97,7 +131,7 @@ router.post('/signup', async(req, res)=>{
       await User.create({
         Name: name,
         Email: email,
-        UID: name,
+        UID: userRecord.uid,
         Role: role
       });
   
