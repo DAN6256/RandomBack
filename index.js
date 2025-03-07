@@ -3,6 +3,7 @@ const { connectDB } = require('./src/config/db');
 const setupSwagger = require('./src/config/swagger'); 
 const models = require('./src/models'); // Import models to register relationships
 
+
 // Import routes
 const authRoutes = require('./src/routes/auth.routes');
 //const userRoutes = require('./src/routes/user.routes');

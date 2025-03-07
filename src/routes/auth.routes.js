@@ -2,6 +2,12 @@
 const express = require('express');
 const router = express.Router();
 
+const admin = require("firebase-admin");
+const User = require("../models/user.model");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const serviceAccount = require("./firebase-admin.json"); //firebase admin sdk import
+
 /**
  * @swagger
  * /api/auth/login:
@@ -38,7 +44,7 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized - Invalid credentials
  */
-router.post('/login', (req, res) => {
+router.post('/login', async(req, res) => {
     res.json({ token: 'fake-jwt-token' });
 });
 
@@ -78,8 +84,30 @@ router.post('/login', (req, res) => {
  *       401:
  *         description: Unauthorized - Invalid credentials
  */
-router.post('/signup', (req, res)=>{
-    res.json({message: 'Signed up'});
+router.post('/signup', async(req, res)=>{
+    const { email, password, name, role } = req.body;
+
+    try {
+      const userRecord = await admin.auth().createUser({
+        email,
+        password,
+        name,
+      });
+
+      await User.create({
+        Name: name,
+        Email: email,
+        UID: name,
+        Role: role
+      });
+  
+      res.status(201).json({
+        message: "User registered successfully",
+        uid: userRecord.uid,
+      });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
 });
 
 module.exports = router;
