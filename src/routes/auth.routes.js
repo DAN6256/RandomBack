@@ -67,7 +67,7 @@ router.get("/user/:email", authenticateUser, async (req, res) => {
       // Fetch user from Firebase Authentication
       const userRecord = await admin.auth().getUserByEmail(email);
   
-      /// Fetch user details from MySQL database
+      /// /Fetch user details from MySQL database
       const dbUser = await User.findOne({ where: { email } });
   
       if (!dbUser) {
