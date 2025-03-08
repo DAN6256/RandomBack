@@ -131,7 +131,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ where: { Email: email } });
+    const user = await User.unscoped().findOne({ where: { Email: email } }); 
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
