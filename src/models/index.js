@@ -1,4 +1,4 @@
-const { sequelize } = require('../config/db'); // Import Sequelize instance
+const { sequelize } = require('../config/db');
 const User = require('./user.model');
 const Equipment = require('./equipment.model');
 const BorrowRequest = require('./borrowRequest.model');
@@ -6,7 +6,7 @@ const BorrowedItem = require('./borrowedItem.model');
 const Reminder = require('./reminder.model');
 const AuditLog = require('./auditLog.model');
 
-// Define model relationships
+// Define relationships
 User.hasMany(BorrowRequest, { foreignKey: 'UserID' });
 BorrowRequest.belongsTo(User, { foreignKey: 'UserID' });
 
@@ -25,13 +25,12 @@ AuditLog.belongsTo(User, { foreignKey: 'UserID' });
 BorrowRequest.hasMany(AuditLog, { foreignKey: 'RequestID' });
 AuditLog.belongsTo(BorrowRequest, { foreignKey: 'RequestID' });
 
-// Export all models and Sequelize instance
 module.exports = {
-    sequelize, 
-    User,
-    Equipment,
-    BorrowRequest,
-    BorrowedItem,
-    Reminder,
-    AuditLog
+  sequelize,
+  User,
+  Equipment,
+  BorrowRequest,
+  BorrowedItem,
+  Reminder,
+  AuditLog
 };

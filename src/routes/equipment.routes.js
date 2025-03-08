@@ -3,11 +3,24 @@ const EquipmentController = require('../controllers/equipment.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware');
 
+const validate = require('../validations/validate');
+const {
+  createEquipmentSchema,
+  updateEquipmentSchema
+} = require('../validations/equipmentValidations');
+
 const router = express.Router();
 
 /**
  * @swagger
- * /equipment/:
+ * tags:
+ *   name: Equipment
+ *   description: Endpoints to manage equipment in the FabTrack system
+ */
+
+/**
+ * @swagger
+ * /api/equipment:
  *   post:
  *     summary: Add new equipment (Admin only)
  *     description: Admins can add new equipment to the system.
@@ -28,7 +41,7 @@ const router = express.Router();
  *                 example: "3D Printer"
  *     responses:
  *       201:
- *         description: Equipment added successfully.
+ *         description: Equipment added successfully
  *         content:
  *           application/json:
  *             schema:
@@ -40,15 +53,15 @@ const router = express.Router();
  *                 equipment:
  *                   type: object
  *       400:
- *         description: Invalid request data.
+ *         description: Invalid request data
  *       403:
- *         description: Unauthorized - User is not an admin.
+ *         description: Unauthorized - User is not an admin
  */
-router.post('/', authMiddleware, roleMiddleware(['Admin']), EquipmentController.addEquipment);
+router.post('/', authMiddleware, roleMiddleware(['Admin']),validate(createEquipmentSchema), EquipmentController.addEquipment);
 
 /**
  * @swagger
- * /equipment/{equipmentID}:
+ * /api/equipment/{equipmentID}:
  *   put:
  *     summary: Update equipment details (Admin only)
  *     description: Admins can update existing equipment details.
@@ -59,7 +72,7 @@ router.post('/', authMiddleware, roleMiddleware(['Admin']), EquipmentController.
  *       - name: equipmentID
  *         in: path
  *         required: true
- *         description: The ID of the equipment to update.
+ *         description: The ID of the equipment to update
  *         schema:
  *           type: integer
  *     requestBody:
@@ -72,15 +85,9 @@ router.post('/', authMiddleware, roleMiddleware(['Admin']), EquipmentController.
  *               name:
  *                 type: string
  *                 example: "Updated 3D Printer"
- *               description:
- *                 type: string
- *                 example: "Updated description for the 3D printer."
- *               serialNumber:
- *                 type: string
- *                 example: "PRT-2024-XYZ-UPDATED"
  *     responses:
  *       200:
- *         description: Equipment updated successfully.
+ *         description: Equipment updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -92,15 +99,15 @@ router.post('/', authMiddleware, roleMiddleware(['Admin']), EquipmentController.
  *                 updatedEquipment:
  *                   type: object
  *       400:
- *         description: Invalid request data or equipment not found.
+ *         description: Invalid request data or equipment not found
  *       403:
- *         description: Unauthorized - User is not an admin.
+ *         description: Unauthorized - User is not an admin
  */
-router.put('/:equipmentID', authMiddleware, roleMiddleware(['Admin']), EquipmentController.updateEquipment);
+router.put('/:equipmentID', authMiddleware, roleMiddleware(['Admin']),validate(updateEquipmentSchema), EquipmentController.updateEquipment);
 
 /**
  * @swagger
- * /equipment/{equipmentID}:
+ * /api/equipment/{equipmentID}:
  *   delete:
  *     summary: Delete equipment (Admin only)
  *     description: Admins can delete equipment from the system.
@@ -111,12 +118,12 @@ router.put('/:equipmentID', authMiddleware, roleMiddleware(['Admin']), Equipment
  *       - name: equipmentID
  *         in: path
  *         required: true
- *         description: The ID of the equipment to delete.
+ *         description: The ID of the equipment to delete
  *         schema:
  *           type: integer
  *     responses:
  *       200:
- *         description: Equipment deleted successfully.
+ *         description: Equipment deleted successfully
  *         content:
  *           application/json:
  *             schema:
@@ -125,42 +132,52 @@ router.put('/:equipmentID', authMiddleware, roleMiddleware(['Admin']), Equipment
  *                 message:
  *                   type: string
  *                   example: "Equipment deleted successfully"
- *       404:
- *         description: Equipment not found.
+ *       400:
+ *         description: Invalid request or item not found
  *       403:
- *         description: Unauthorized - User is not an admin.
+ *         description: Unauthorized - User is not an admin
  */
 router.delete('/:equipmentID', authMiddleware, roleMiddleware(['Admin']), EquipmentController.deleteEquipment);
 
 /**
  * @swagger
- * /equipment:
+ * /api/equipment:
  *   get:
  *     summary: Get all equipment
- *     description: Retrieve a list of all equipment in the system.
+ *     description: Retrieve a list of all equipment in the system
  *     tags: [Equipment]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: A list of all equipment.
+ *         description: A list of all equipment
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *       403:
- *         description: Unauthorized access.
+ *               type: object
+ *               properties:
+ *                 equipmentList:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       EquipmentID:
+ *                         type: integer
+ *                         example: 1
+ *                       Name:
+ *                         type: string
+ *                         example: "3D Printer"
+ *       400:
+ *         description: Error retrieving equipment
  */
 router.get('/', authMiddleware, EquipmentController.getAllEquipment);
 
 /**
  * @swagger
- * /equipment/{equipmentID}:
+ * /api/equipment/{equipmentID}:
  *   get:
  *     summary: Get specific equipment details
- *     description: Retrieve details of a specific equipment item.
+ *     description: Retrieve details of a specific equipment item by ID.
  *     tags: [Equipment]
  *     security:
  *       - bearerAuth: []
@@ -168,20 +185,21 @@ router.get('/', authMiddleware, EquipmentController.getAllEquipment);
  *       - name: equipmentID
  *         in: path
  *         required: true
- *         description: The ID of the equipment to retrieve.
+ *         description: The ID of the equipment to retrieve
  *         schema:
  *           type: integer
  *     responses:
  *       200:
- *         description: Equipment details retrieved successfully.
+ *         description: Equipment details retrieved successfully
  *         content:
  *           application/json:
  *             schema:
  *               type: object
+ *               properties:
+ *                 equipment:
+ *                   type: object
  *       404:
- *         description: Equipment not found.
- *       403:
- *         description: Unauthorized access.
+ *         description: Equipment not found
  */
 router.get('/:equipmentID', authMiddleware, EquipmentController.getEquipmentById);
 

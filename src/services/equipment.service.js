@@ -1,58 +1,61 @@
 const { Equipment, AuditLog } = require('../models');
 
 const EquipmentService = {
-    addEquipment: async (name, userID) => {
-        const equipment = await Equipment.create({ Name: name });
+  addEquipment: async (name, userID) => {
+    const equipment = await Equipment.create({ Name: name });
 
-        await AuditLog.create({
-            UserID: userID,
-            Action: 'Create',
-            Details: `Equipment added: ${name}`,
-            Timestamp: new Date()
-        });
+    await AuditLog.create({
+      UserID: userID,
+      Action: 'Create',
+      Details: `Equipment added: ${name}`,
+      Timestamp: new Date()
+    });
 
-        return equipment;
-    },
+    return equipment;
+  },
 
-    updateEquipment: async (equipmentID, name, userID) => {
-        const equipment = await Equipment.findByPk(equipmentID);
-        if (!equipment) throw new Error('Equipment not found');
+  updateEquipment: async (equipmentID, name, userID) => {
+    const equipment = await Equipment.findByPk(equipmentID);
+    if (!equipment) throw new Error('Equipment not found');
 
-        equipment.Name = name || equipment.Name;
-        await equipment.save();
+    equipment.Name = name || equipment.Name;
+    await equipment.save();
 
-        await AuditLog.create({
-            UserID: userID,
-            Action: 'Update',
-            Details: `Equipment ${equipmentID} updated`,
-            Timestamp: new Date()
-        });
+    await AuditLog.create({
+      UserID: userID,
+      Action: 'Update',
+      Details: `Equipment ${equipmentID} updated`,
+      Timestamp: new Date()
+    });
 
-        return equipment;
-    },
+    return equipment;
+  },
 
-    deleteEquipment: async (equipmentID, userID) => {
-        await Equipment.destroy({ where: { EquipmentID: equipmentID } });
+  deleteEquipment: async (equipmentID, userID) => {
+    const equipment = await Equipment.findByPk(equipmentID);
+    if (!equipment) throw new Error('Equipment not found');
 
-        await AuditLog.create({
-            UserID: userID,
-            Action: 'Delete',
-            Details: `Equipment ${equipmentID} deleted`,
-            Timestamp: new Date()
-        });
+    await Equipment.destroy({ where: { EquipmentID: equipmentID } });
 
-        return { message: 'Equipment deleted' };
-    },
+    await AuditLog.create({
+      UserID: userID,
+      Action: 'Delete',
+      Details: `Equipment ${equipmentID} deleted`,
+      Timestamp: new Date()
+    });
 
-    getAllEquipment: async () => {
-        return await Equipment.findAll();
-    },
+    return { message: 'Equipment deleted' };
+  },
 
-    getEquipmentById: async (equipmentID) => {
-        const equipment = await Equipment.findByPk(equipmentID);
-        if (!equipment) throw new Error('Equipment not found');
-        return equipment;
-    }
+  getAllEquipment: async () => {
+    return await Equipment.findAll();
+  },
+
+  getEquipmentById: async (equipmentID) => {
+    const equipment = await Equipment.findByPk(equipmentID);
+    if (!equipment) throw new Error('Equipment not found');
+    return equipment;
+  }
 };
 
 module.exports = EquipmentService;
