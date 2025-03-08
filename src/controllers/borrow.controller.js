@@ -3,10 +3,10 @@ const BorrowService = require('../services/borrow.service');
 const BorrowController = {
   requestEquipment: async (req, res) => {
     try {
-      const userID = req.user.UserID; // from JWT
-      const { items } = req.body; // array of { equipmentID, quantity, description }
+      const { items, collectionDateTime } = req.body; 
+      const userID = req.user.UserID;
 
-      const borrowRequest = await BorrowService.requestEquipment(userID, items);
+      const borrowRequest = await BorrowService.requestEquipment(userID, items, collectionDateTime);
       res.status(201).json({ message: 'Request submitted', borrowRequest });
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -43,6 +43,25 @@ const BorrowController = {
         return res.status(200).json({ message: 'No due requests found to remind' });
       }
       res.status(200).json({ message: 'Reminders sent successfully' });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+  getAllRequests: async (req, res) => {
+    try {
+      const user = req.user; 
+      const requests = await BorrowService.getAllRequests(user);
+      res.status(200).json({ requests });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
+  getPendingRequests: async (req, res) => {
+    try {
+      const user = req.user;
+      const requests = await BorrowService.getPendingRequests(user);
+      res.status(200).json({ requests });
     } catch (error) {
       res.status(400).json({ message: error.message });
     }

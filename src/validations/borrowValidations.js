@@ -2,6 +2,7 @@ const Joi = require('joi');
 
 // For student borrow requests: array of items with equipmentID, quantity, description
 const requestBorrowSchema = Joi.object({
+  collectionDateTime: Joi.date().required(),
   items: Joi.array().items(
     Joi.object({
       equipmentID: Joi.number().integer().required(),

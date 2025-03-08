@@ -2,7 +2,7 @@ const { BorrowRequest, BorrowedItem, Equipment, User, Reminder, AuditLog } = req
 const EmailService = require('./email.service');
 
 const BorrowService = {
-  requestEquipment: async (userID, items) => {
+  requestEquipment: async (userID, items, collectionDateTime) => {
     const student = await User.findByPk(userID);
     if (!student || student.Role !== 'Student') {
       throw new Error('Invalid student or role');
@@ -18,7 +18,8 @@ const BorrowService = {
       UserID: userID,
       BorrowDate: new Date(),
       Status: 'Pending',
-      ReturnDate: null
+      ReturnDate: null,
+      CollectionDateTime: collectionDateTime
     });
 
     // Create the BorrowedItems
@@ -56,10 +57,12 @@ const BorrowService = {
 
     // Send email to student + admin, now with item details
     await EmailService.sendBorrowRequestNotification(
+      student.Name,                
       student.Email,
       admin.Email,
       borrowRequest.RequestID,
-      borrowedItems
+      borrowedItems,
+      borrowRequest.CollectionDateTime
     );
 
     return borrowRequest;
@@ -113,6 +116,7 @@ const BorrowService = {
 
     if (student) {
       await EmailService.sendApprovalNotification(
+        student.Name,
         student.Email,
         requestID,
         returnDate,
@@ -169,7 +173,7 @@ const BorrowService = {
     for (const request of dueRequests) {
       const student = await User.findByPk(request.UserID);
       if (student) {
-        await EmailService.sendReminder(student.Email, request.RequestID, request.ReturnDate);
+        await EmailService.sendReminder(student.Name, student.Email, request.RequestID, request.ReturnDate);
         await Reminder.create({
           RequestID: request.RequestID,
           ReminderDate: new Date(),
@@ -189,7 +193,46 @@ const BorrowService = {
     }
 
     return remindersSent;
+  },
+
+  getAllRequests: async (user) => {
+    if (user.Role === 'Admin') {
+      // Admin sees all requests
+      return await BorrowRequest.findAll({
+        order: [['RequestID', 'DESC']],
+        include: [User] // optionally include user details
+      });
+    } else {
+      // Student sees only their requests
+      return await BorrowRequest.findAll({
+        where: { UserID: user.UserID },
+        order: [['RequestID', 'DESC']],
+        include: [User]
+      });
+    }
+  },
+
+  getPendingRequests: async (user) => {
+    if (user.Role === 'Admin') {
+      return await BorrowRequest.findAll({
+        where: { Status: 'Pending' },
+        order: [['RequestID', 'DESC']],
+        include: [User]
+      });
+    } else {
+      return await BorrowRequest.findAll({
+        where: {
+          UserID: user.UserID,
+          Status: 'Pending'
+        },
+        order: [['RequestID', 'DESC']],
+        include: [User]
+      });
+    }
   }
+
+
+
 };
 
 module.exports = BorrowService;

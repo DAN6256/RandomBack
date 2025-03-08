@@ -33,6 +33,10 @@ const BorrowRequest = sequelize.define('BorrowRequest', {
   CreatedAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
+  },
+  CollectionDateTime: { 
+    type: DataTypes.DATE,
+    allowNull: true
   }
 }, {
   timestamps: false

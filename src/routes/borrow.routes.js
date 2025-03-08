@@ -29,6 +29,7 @@ const router = express.Router();
  *             type: object
  *             required:
  *               - items
+ *               - collectionDateTime
  *             properties:
  *               items:
  *                 type: array
@@ -44,6 +45,10 @@ const router = express.Router();
  *                     description:
  *                       type: string
  *                       example: "Needed for class project"
+ *               collectionDateTime:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2025-09-15T10:00:00Z"
  *     responses:
  *       201:
  *         description: Borrow request submitted
@@ -161,5 +166,40 @@ router.put('/return/:requestID', authMiddleware, roleMiddleware(['Admin']), Borr
  *         description: Unauthorized - User is not an Admin
  */
 router.post('/send-reminder', authMiddleware, roleMiddleware(['Admin']), BorrowController.sendReminder);
+
+/**
+ * @swagger
+ * /api/borrow/all-requests:
+ *   get:
+ *     summary: Get all borrow requests
+ *     description: If user is Admin, returns all requests. If user is Student, returns only that student's requests.
+ *     tags: [Borrow]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all relevant borrow requests
+ *       400:
+ *         description: Error fetching requests
+ */
+ router.get('/all-requests', authMiddleware, BorrowController.getAllRequests);
+
+ /**
+  * @swagger
+  * /api/borrow/pending-requests:
+  *   get:
+  *     summary: Get pending borrow requests
+  *     description: If user is Admin, returns all pending requests. If user is Student, returns only that student's pending requests.
+  *     tags: [Borrow]
+  *     security:
+  *       - bearerAuth: []
+  *     responses:
+  *       200:
+  *         description: List of pending requests
+  *       400:
+  *         description: Error fetching requests
+  */
+ router.get('/pending-requests', authMiddleware, BorrowController.getPendingRequests);
+ 
 
 module.exports = router;
