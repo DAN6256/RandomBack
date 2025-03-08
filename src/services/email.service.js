@@ -36,14 +36,14 @@ const EmailService = {
       from: process.env.EMAIL,
       to: studentEmail,
       subject: `Borrow Request #${requestID} Submitted`,
-      text: `Dear ${studentName},\n\nYour borrow request #${requestID} has been submitted with the following items:\n\n${itemDetails}\nYou will be notified once it is approved.`
+      text: `Dear ${studentName},\n\nYour borrow request #${requestID} has been submitted with the following items:\n\n${itemDetails}\nYou will need to go to the fablab to collect them at the time you indicated in your request\nRegards,\nFabtrack`
     };
 
     let adminBody = `A new borrow request #${requestID} has been submitted by ${studentName} with the following items:\n\n${itemDetails}`;
     if (collectionDateTime) {
       adminBody += `Requested pick-up date/time: ${collectionDateTime}\n`;
     }
-    adminBody += `Please review and approve it.`;
+    adminBody += `Please prepare the component(s) for pickup by the pickup time and do not forgot to validate that the components have been given out\nRegards, \nFabtrack`;
 
     const mailOptionsAdmin = {
       from: process.env.EMAIL,
@@ -74,7 +74,7 @@ const EmailService = {
       from: process.env.EMAIL,
       to: studentEmail,
       subject: `Borrow Request #${requestID} Approved`,
-      text: `Dear ${studentName},\n\nYour borrow request #${requestID} has been approved.\nReturn deadline: ${returnDate}\n\nApproved items:\n${itemDetails}`
+      text: `Dear ${studentName},\n\nYour borrow request #${requestID} has been approved.\nReturn deadline: ${returnDate}\n\nApproved items:\n${itemDetails}\n Ensure to submit request on time.\nRegards,\nFabtrack`
     };
 
     await transporter.sendMail(mailOptions);
@@ -85,7 +85,7 @@ const EmailService = {
       from: process.env.EMAIL,
       to: studentEmail,
       subject: 'Equipment Return Reminder',
-      text: `Dear ${studentName},\n\nThis is a reminder that your borrow request #${requestID} is due on ${returnDate}.`
+      text: `Dear ${studentName},\n\nThis is a reminder that your borrow request #${requestID} is due on ${returnDate}.\Regards,\nFabtrack`
     };
 
     await transporter.sendMail(mailOptions);
