@@ -13,14 +13,6 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/equipment/:
- * tags:
- *   name: Equipment
- *   description: Endpoints to manage equipment in the FabTrack system
- */
-
-/**
- * @swagger
  * /api/equipment:
  *   post:
  *     summary: Add new equipment (Admin only)
