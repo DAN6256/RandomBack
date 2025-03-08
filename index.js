@@ -1,5 +1,6 @@
 const express = require('express');
 require('dotenv').config();
+const cors = require('cors'); // <-- import cors
 const { connectDB } = require('./src/config/db');
 const setupSwagger = require('./src/config/swagger');
 const models = require('./src/models'); // register relationships
