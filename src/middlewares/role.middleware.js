@@ -1,10 +1,12 @@
-const dummyRoleMiddleware = (roles) => {
+const roleMiddleware = (allowedRoles) => {
     return (req, res, next) => {
-        console.log(`🟢 Dummy role middleware: User role is '${req.user.role}', allowed roles: ${roles}`);
-
-        // Just log and pass the request through without actually checking roles
-        next();
+      const userRole = req.user.Role;
+      if (!allowedRoles.includes(userRole)) {
+        return res.status(403).json({ message: 'Forbidden: Insufficient role privileges' });
+      }
+      next();
     };
-};
-
-module.exports = dummyRoleMiddleware;
+  };
+  
+  module.exports = roleMiddleware;
+  

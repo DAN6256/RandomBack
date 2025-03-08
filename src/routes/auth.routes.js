@@ -1,94 +1,28 @@
-
 const express = require('express');
 const router = express.Router();
-const User = require("../models/user.model");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const admin = require("../config/firebase");
-const authenticateUser = require("../middlewares/auth.middleware");
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { User } = require('../models');
+require('dotenv').config();
 
-
-const app = express();
-
-app.use(express.json());
-
-app.use(cors());
-app.use(bodyParser.json());
+const authMiddleware = require('../middlewares/auth.middleware'); // If you need it, though probably not for /signup /login
+const roleMiddleware = require('../middlewares/role.middleware'); // Possibly not used here
+const validate = require('../validations/validate');
+const { signupSchema, loginSchema } = require('../validations/authValidations');
 
 /**
- * 
  * @swagger
- * /api/auth/login:
- *   post:
- *     summary: User login
- *     description: Authenticate user and return a JWT token.
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *               - Name
- *             properties:
- *               email:
- *                 type: string
- *                 example: user@ashesi.edu.gh
- *               password:
- *                 type: string
- *                 example: Password123
- *               name:
- *                 type: string
- *                 example: Kwaku Asare
- *     responses:
- *       200:
- *         description: Successful login
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- *       401:
- *         description: Unauthorized - Invalid credentials
+ * tags:
+ *   name: Authentication
+ *   description: Endpoints related to user signup and login
  */
-// router.post('/login', async(req, res) => {
-//     res.json({ token: 'fake-jwt-token' });
-// });
-
-router.get("/user/:email", authenticateUser, async (req, res) => {
-    const { email } = req.params;
-  
-    try {
-      // Fetch user from Firebase Authentication
-      const userRecord = await admin.auth().getUserByEmail(email);
-  
-      /// /Fetch user details from MySQL database
-      const dbUser = await User.findOne({ where: { email } });
-  
-      if (!dbUser) {
-        return res.status(404).json({ message: "User not found in database" });
-      }
-  
-      res.status(200).json({
-        firebaseUser: userRecord,
-        dbUser,
-      });
-    } catch (error) {
-      res.status(500).json({ message: "Error fetching user", error: error.message });
-    }
-  });
 
 /**
  * @swagger
  * /api/auth/signup:
  *   post:
- *     summary: User Signup
- *     description: Signup user and allow  them to verify email.
+ *     summary: User registration
+ *     description: Register a new user (Student or Admin). Returns a userID upon success.
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -99,59 +33,138 @@ router.get("/user/:email", authenticateUser, async (req, res) => {
  *             required:
  *               - email
  *               - password
+ *               - name
+ *               - role
  *             properties:
  *               email:
  *                 type: string
- *                 example: user@ashesi.edu.gh
+ *                 example: "john.doe@ashesi.edu.gh"
  *               password:
  *                 type: string
- *                 example: Password123
+ *                 example: "Password123"
  *               name:
  *                 type: string
- *                 example: Kwaku Asare
+ *                 example: "John Doe"
  *               role:
  *                 type: string
- *                 example: Student
+ *                 enum: [Student, Admin]
+ *                 example: "Student"
  *     responses:
  *       201:
- *         description: Successful creation of account
+ *         description: User registered successfully
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 id:
+ *                 message:
+ *                   type: string
+ *                   example: "User registered successfully"
+ *                 userID:
  *                   type: integer
- *       401:
- *         description: Unauthorized - Invalid credentials
+ *                   example: 5
+ *       400:
+ *         description: Bad request (e.g. email already taken)
  */
-router.post('/signup', async(req, res)=>{
+router.post('/signup', validate(signupSchema), async (req, res) => {
+  try {
     const { email, password, name, role } = req.body;
 
-    console.log(req.body)
-
-    try {
-          
-      const userRecord = await admin.auth().createUser({
-        email,
-        password,
-        name,
-      });
-
-      await User.create({
-        Name: name,
-        Email: email,
-        UID: userRecord.uid,
-        Role: role
-      });
-  
-      res.status(201).json({
-        message: "User registered successfully",
-        uid: userRecord.uid,
-      });
-    } catch (error) {
-      res.status(400).json({ error: error.message });
+    const existing = await User.findOne({ where: { Email: email } });
+    if (existing) {
+      return res.status(400).json({ message: 'Email already taken' });
     }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const newUser = await User.create({
+      Name: name,
+      Email: email,
+      Role: role,
+      Password: hashedPassword
+    });
+
+    return res.status(201).json({
+      message: 'User registered successfully',
+      userID: newUser.UserID
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: User login
+ *     description: Authenticate user and return a JWT token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "john.doe@ashesi.edu.gh"
+ *               password:
+ *                 type: string
+ *                 example: "Password123"
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Login successful"
+ *                 token:
+ *                   type: string
+ *                   example: "eyJhGciOiJIUzI1..."
+ *       401:
+ *         description: Invalid credentials
+ *       400:
+ *         description: Bad request
+ */
+router.post('/login', validate(loginSchema), async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ where: { Email: email } });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const match = await bcrypt.compare(password, user.Password);
+    if (!match) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign(
+      {
+        UserID: user.UserID,
+        Email: user.Email,
+        Role: user.Role
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '60m' } // or '1h'
+    );
+
+    return res.status(200).json({
+      message: 'Login successful',
+      token
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
 });
 
 module.exports = router;

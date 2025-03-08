@@ -1,21 +1,25 @@
-const { admin } = require("../config/firebase"); // Import Firebase Admin
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
-const authenticateUser = async (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1]; // Extract token from Bearer scheme
-
-  if (!token) {
-    return res.status(401).json({ message: "Unauthorized: No token provided" });
-  }
-
+const authenticateUser = (req, res, next) => {
   try {
-    // Verify the Firebase ID token
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    
-    // Attach the user's data to the request object
-    req.user = decodedToken;
-    next(); // Proceed to the next middleware or route handler
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ message: 'No authorization header provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Invalid token format' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Attach user info to request
+    req.user = decoded;
+
+    return next();
   } catch (error) {
-    return res.status(403).json({ message: "Unauthorized: Invalid token", error: error.message });
+    return res.status(401).json({ message: 'Unauthorized', error: error.message });
   }
 };
 

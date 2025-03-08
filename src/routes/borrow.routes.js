@@ -3,14 +3,26 @@ const BorrowController = require('../controllers/borrow.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware');
 
+const validate = require('../validations/validate');
+const { requestBorrowSchema, approveBorrowSchema } = require('../validations/borrowValidations');
+
 const router = express.Router();
+
+/**
+ * @swagger
+ * tags:
+ *   name: Borrow
+ *   description: Endpoints for borrowing and returning equipment
+ */
 
 /**
  * @swagger
  * /api/borrow/request:
  *   post:
- *     summary: Request equipment (Student only)
- *     description: Students can request to borrow equipment. Both the student and the admin will receive email notifications.
+ *     summary: Request multiple equipment items (Student only)
+ *     description: 
+ *       Students can create a borrow request with multiple items in a single request.
+ *       Serial number is NOT required at this stage.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
@@ -21,47 +33,41 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - equipmentID
- *               - quantity
+ *               - items
  *             properties:
- *               equipmentID:
- *                 type: integer
- *                 example: 1
- *               quantity:
- *                 type: integer
- *                 example: 2
- *               description:
- *                 type: string
- *                 example: "Need this for a robotics project."
- *               serialNumber:
- *                 type: string
- *                 example: "ABC1234"
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     equipmentID:
+ *                       type: integer
+ *                       example: 1
+ *                     quantity:
+ *                       type: integer
+ *                       example: 2
+ *                     description:
+ *                       type: string
+ *                       example: "Needed for class project"
  *     responses:
  *       201:
- *         description: Borrow request submitted successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Request submitted"
- *                 borrowRequest:
- *                   type: object
+ *         description: Borrow request submitted
  *       400:
- *         description: Invalid request data or equipment not found.
+ *         description: Invalid request data or user/equipment not found
  *       403:
- *         description: Unauthorized - User is not a student.
+ *         description: Unauthorized - User is not a Student
  */
-router.post('/request', authMiddleware, roleMiddleware(['Student']), BorrowController.requestEquipment);
+router.post('/request', authMiddleware, roleMiddleware(['Student']),validate(requestBorrowSchema), BorrowController.requestEquipment);
 
 /**
  * @swagger
  * /api/borrow/approve/{requestID}:
  *   put:
  *     summary: Approve a borrow request (Admin only)
- *     description: Admins can approve a pending borrow request. The student will receive a confirmation email with the return deadline. The admin can also edit or add the description and serial number.
+ *     description: 
+ *       Admin can approve a Pending borrow request. The request body includes an array 
+ *       of items (each with BorrowedItemID) that can be updated with serial numbers, 
+ *       or marked allowed = false if admin doesn't permit that specific item.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
@@ -69,7 +75,7 @@ router.post('/request', authMiddleware, roleMiddleware(['Student']), BorrowContr
  *       - name: requestID
  *         in: path
  *         required: true
- *         description: The ID of the borrow request to approve.
+ *         description: The ID of the borrow request to approve
  *         schema:
  *           type: integer
  *     requestBody:
@@ -80,47 +86,46 @@ router.post('/request', authMiddleware, roleMiddleware(['Student']), BorrowContr
  *             type: object
  *             required:
  *               - returnDate
- *               - itemID
+ *               - items
  *             properties:
  *               returnDate:
  *                 type: string
  *                 format: date-time
- *                 example: "2024-03-20T00:00:00Z"
- *               itemID:
- *                 type: integer
- *                 example: 5
- *               description:
- *                 type: string
- *                 example: "Updated description: Advanced motor component."
- *               serialNumber:
- *                 type: string
- *                 example: "XYZ5678"
+ *                 example: "2025-08-01T00:00:00Z"
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     borrowedItemID:
+ *                       type: integer
+ *                       example: 10
+ *                     allow:
+ *                       type: boolean
+ *                       example: true
+ *                     description:
+ *                       type: string
+ *                       example: "Admin-updated description"
+ *                     serialNumber:
+ *                       type: string
+ *                       example: "XYZ5678"
  *     responses:
  *       200:
- *         description: Borrow request approved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Request approved"
- *                 approvedRequest:
- *                   type: object
+ *         description: Borrow request approved
  *       400:
- *         description: Request not found, invalid itemID, or already processed.
+ *         description: Request not found or invalid item
  *       403:
- *         description: Unauthorized - User is not an admin.
+ *         description: Unauthorized - User is not an Admin
  */
-router.put('/approve/:requestID', authMiddleware, roleMiddleware(['Admin']), BorrowController.approveRequest);
+router.put('/approve/:requestID', authMiddleware, roleMiddleware(['Admin']),validate(approveBorrowSchema), BorrowController.approveRequest);
 
 /**
  * @swagger
  * /api/borrow/return/{requestID}:
  *   put:
  *     summary: Return borrowed equipment (Admin only)
- *     description: Admins can mark a borrow request as returned.
+ *     description: 
+ *       Admin can mark an approved borrow request as returned.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
@@ -128,26 +133,16 @@ router.put('/approve/:requestID', authMiddleware, roleMiddleware(['Admin']), Bor
  *       - name: requestID
  *         in: path
  *         required: true
- *         description: The ID of the borrow request to mark as returned.
+ *         description: The ID of the borrow request to mark as returned
  *         schema:
  *           type: integer
  *     responses:
  *       200:
- *         description: Equipment returned successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Equipment returned"
- *                 returnedRequest:
- *                   type: object
+ *         description: Equipment returned successfully
  *       400:
- *         description: Invalid return request.
+ *         description: Invalid return request or request not in Approved status
  *       403:
- *         description: Unauthorized - User is not an admin.
+ *         description: Unauthorized - User is not an Admin
  */
 router.put('/return/:requestID', authMiddleware, roleMiddleware(['Admin']), BorrowController.returnEquipment);
 
@@ -156,25 +151,19 @@ router.put('/return/:requestID', authMiddleware, roleMiddleware(['Admin']), Borr
  * /api/borrow/send-reminder:
  *   post:
  *     summary: Send return reminders (Admin only)
- *     description: Admins can trigger email reminders for students who have not returned borrowed equipment one day before the due date.
+ *     description: 
+ *       Admin triggers email reminders for upcoming due dates. 
+ *       If no requests match, a message indicates no reminders sent.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Reminders sent successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Reminders sent successfully"
+ *         description: Reminders sent successfully or "No due requests found"
  *       400:
- *         description: Error processing reminders.
+ *         description: Error processing reminders
  *       403:
- *         description: Unauthorized - User is not an admin.
+ *         description: Unauthorized - User is not an Admin
  */
 router.post('/send-reminder', authMiddleware, roleMiddleware(['Admin']), BorrowController.sendReminder);
 
