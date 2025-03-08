@@ -55,7 +55,6 @@ router.post('/', authMiddleware, roleMiddleware(['Admin']),validate(createEquipm
 /**
  * @swagger
  * /api/equipment/{equipmentID}:
- * /api/equipment/{equipmentID}:
  *   put:
  *     summary: Update equipment details (Admin only)
  *     description: Admins can update existing equipment details.
@@ -102,7 +101,6 @@ router.put('/:equipmentID', authMiddleware, roleMiddleware(['Admin']),validate(u
 /**
  * @swagger
  * /api/equipment/{equipmentID}:
- * /api/equipment/{equipmentID}:
  *   delete:
  *     summary: Delete equipment (Admin only)
  *     description: Admins can delete equipment from the system.
@@ -137,7 +135,6 @@ router.delete('/:equipmentID', authMiddleware, roleMiddleware(['Admin']), Equipm
 /**
  * @swagger
  * /api/equipment:
- * /api/equipment:
  *   get:
  *     summary: Get all equipment
  *     description: Retrieve a list of all equipment in the system
@@ -170,7 +167,6 @@ router.get('/', authMiddleware, EquipmentController.getAllEquipment);
 
 /**
  * @swagger
- * /api/equipment/{equipmentID}:
  * /api/equipment/{equipmentID}:
  *   get:
  *     summary: Get specific equipment details
