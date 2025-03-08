@@ -8,12 +8,7 @@ const { requestBorrowSchema, approveBorrowSchema } = require('../validations/bor
 
 const router = express.Router();
 
-/**
- * @swagger
- * tags:
- *   name: Borrow
- *   description: Endpoints for borrowing and returning equipment
- */
+
 
 /**
  * @swagger

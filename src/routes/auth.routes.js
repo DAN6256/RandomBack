@@ -12,13 +12,6 @@ const { signupSchema, loginSchema } = require('../validations/authValidations');
 
 /**
  * @swagger
- * tags:
- *   name: Authentication
- *   description: Endpoints related to user signup and login
- */
-
-/**
- * @swagger
  * /api/auth/signup:
  *   post:
  *     summary: User registration
