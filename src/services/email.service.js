@@ -80,6 +80,15 @@ const EmailService = {
 
     await transporter.sendMail(mailOptions);
   },
+  sendReturnConfirmation: async (studentName, studentEmail, requestID) => {
+    const mailOptions = {
+      from: process.env.EMAIL,
+      to: studentEmail,
+      subject: `Borrow Request #${requestID} Returned`,
+      text: `Dear ${studentName},\n\nYour borrow request #${requestID} has been marked as returned by the admin. If you have any questions, contact the lab staff.\n`
+    };
+    await transporter.sendMail(mailOptions);
+  },
 
   sendReminder: async (studentName, studentEmail, requestID, returnDate) => {
     const mailOptions = {
@@ -90,7 +99,8 @@ const EmailService = {
     };
 
     await transporter.sendMail(mailOptions);
-  }
+  },
+  
 };
 
 module.exports = EmailService;
