@@ -1,9 +1,8 @@
 // FILE: test/unit/role.middleware.test.js
 const roleMiddleware = require('../../src/middlewares/role.middleware');
 
-describe('roleMiddleware', () => {
+describe('role.middleware', () => {
   let req, res, next;
-
   beforeEach(() => {
     req = { user: {} };
     res = {
@@ -13,7 +12,7 @@ describe('roleMiddleware', () => {
     next = jest.fn();
   });
 
-  it('should call next if user role is in allowedRoles', () => {
+  it('should call next if user role is allowed', () => {
     req.user.Role = 'Admin';
     const mw = roleMiddleware(['Admin', 'SuperAdmin']);
     mw(req, res, next);

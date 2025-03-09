@@ -2,26 +2,25 @@
 const request = require('supertest');
 const app = require('../../index');
 const { User } = require('../../src/models');
-const bcrypt = require('bcrypt');
-
-// To bypass middleware, you might set a valid token manually if needed.
-// For these tests, we assume the routes are directly accessible.
 
 describe('AuthController', () => {
-  afterAll(async () => {
-    // Close resources if needed.
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('POST /api/auth/signup', () => {
-    it('should return 201 if user is created', async () => {
+    it('should register a new user if email is not taken', async () => {
+      // Mock User.findOne to return null (email not taken)
       jest.spyOn(User, 'findOne').mockResolvedValue(null);
+      // Mock User.create to return a new user object with a UserID
       jest.spyOn(User, 'create').mockResolvedValue({ UserID: 1 });
+
       const res = await request(app)
         .post('/api/auth/signup')
         .send({
-          email: 'new@example.com',
+          email: 'newuser@example.com',
           password: 'Password123',
-          name: 'NewUser',
+          name: 'New User',
           role: 'Student'
         });
       expect(res.status).toBe(201);
@@ -29,13 +28,14 @@ describe('AuthController', () => {
     });
 
     it('should return 400 if email is already taken', async () => {
-      jest.spyOn(User, 'findOne').mockResolvedValue({ Email: 'test@example.com' });
+      jest.spyOn(User, 'findOne').mockResolvedValue({ Email: 'existing@example.com' });
+
       const res = await request(app)
         .post('/api/auth/signup')
         .send({
-          email: 'test@example.com',
+          email: 'existing@example.com',
           password: 'Password123',
-          name: 'Duplicate',
+          name: 'Existing User',
           role: 'Admin'
         });
       expect(res.status).toBe(400);
@@ -44,21 +44,24 @@ describe('AuthController', () => {
   });
 
   describe('POST /api/auth/login', () => {
-    it('should return 200 and token if credentials valid', async () => {
+    it('should return a token if credentials are valid', async () => {
+      // Mock unscoped findOne to include the Password field
       jest.spyOn(User, 'unscoped').mockReturnValue({
         findOne: jest.fn().mockResolvedValue({
           UserID: 99,
           Email: 'valid@example.com',
-          Password: 'hashedstuff',
+          Password: 'hashedpassword',
           Role: 'Student'
         })
       });
+      const bcrypt = require('bcrypt');
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+
       const res = await request(app)
         .post('/api/auth/login')
         .send({
           email: 'valid@example.com',
-          password: 'CorrectPass'
+          password: 'Password123'
         });
       expect(res.status).toBe(200);
       expect(res.body.token).toBeDefined();
@@ -67,13 +70,15 @@ describe('AuthController', () => {
 
     it('should return 401 if credentials are invalid', async () => {
       jest.spyOn(User, 'unscoped').mockReturnValue({
-        findOne: jest.fn().mockResolvedValue({ Password: 'somehash' })
+        findOne: jest.fn().mockResolvedValue({ Password: 'hashedpassword' })
       });
+      const bcrypt = require('bcrypt');
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(false);
+
       const res = await request(app)
         .post('/api/auth/login')
         .send({
-          email: 'test@example.com',
+          email: 'invalid@example.com',
           password: 'WrongPassword'
         });
       expect(res.status).toBe(401);

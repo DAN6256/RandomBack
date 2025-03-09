@@ -37,24 +37,24 @@ describe('BorrowService', () => {
   });
 
   describe('requestEquipment', () => {
-    it('should throw if user is not Student', async () => {
+    it('should throw if user is not a Student', async () => {
       User.findByPk.mockResolvedValue({ Role: 'Admin' });
       await expect(BorrowService.requestEquipment(1, [], new Date()))
         .rejects.toThrow('Invalid student or role');
     });
 
     it('should create a BorrowRequest and BorrowedItems', async () => {
-      User.findByPk.mockResolvedValue({ Role: 'Student', Name: 'John' });
+      User.findByPk.mockResolvedValue({ Role: 'Student', Name: 'Alice' });
       User.findOne.mockResolvedValue({ Email: 'admin@example.com' });
       BorrowRequest.create.mockResolvedValue({ RequestID: 101, CollectionDateTime: '2025-10-01T00:00:00Z' });
       Equipment.findByPk.mockResolvedValue({ EquipmentID: 55 });
       BorrowedItem.create.mockResolvedValue({});
       BorrowedItem.findAll.mockResolvedValue([
-        { Equipment: { Name: 'XYZ' }, Quantity: 2, Description: 'Test desc' }
+        { Equipment: { Name: 'XYZ Printer' }, Quantity: 2, Description: 'For project' }
       ]);
 
       const result = await BorrowService.requestEquipment(2, [
-        { equipmentID: 55, quantity: 2, description: 'Test desc' }
+        { equipmentID: 55, quantity: 2, description: 'For project' }
       ], '2025-10-01T00:00:00Z');
       expect(result.RequestID).toBe(101);
       expect(BorrowedItem.create).toHaveBeenCalled();
@@ -81,6 +81,7 @@ describe('BorrowService', () => {
       });
       BorrowedItem.findAll.mockResolvedValue([{ Equipment: { Name: 'XYZ' }, Quantity: 2 }]);
       User.findByPk.mockResolvedValue({ Email: 'student@example.com', Role: 'Student', Name: 'Alice' });
+      
       await BorrowService.approveRequest(50, new Date('2025-10-05T00:00:00Z'), [
         { borrowedItemID: 1, allow: true, description: 'desc', serialNumber: 'SN123' }
       ]);
@@ -91,7 +92,7 @@ describe('BorrowService', () => {
   });
 
   describe('returnEquipment', () => {
-    it('should throw if request not approved', async () => {
+    it('should throw if request is not approved', async () => {
       BorrowRequest.findByPk.mockResolvedValue({ Status: 'Pending' });
       await expect(BorrowService.returnEquipment(10))
         .rejects.toThrow('Invalid request or not in approved state');
@@ -114,7 +115,9 @@ describe('BorrowService', () => {
 
   describe('sendReminderForDueReturns', () => {
     it('should send reminder if request is due in 2 days', async () => {
-      BorrowRequest.findAll.mockResolvedValue([{ RequestID: 7, UserID: 3, ReturnDate: '2025-12-10T00:00:00Z' }]);
+      BorrowRequest.findAll.mockResolvedValue([
+        { RequestID: 7, UserID: 3, ReturnDate: '2025-12-10T00:00:00Z' }
+      ]);
       User.findByPk.mockResolvedValue({ Name: 'Alice', Email: 'stud@example.com', Role: 'Student' });
       const count = await BorrowService.sendReminderForDueReturns();
       expect(count).toBe(1);
@@ -123,7 +126,7 @@ describe('BorrowService', () => {
       );
     });
   });
-  
+
   describe('getItemsForRequest', () => {
     it('should throw if request not found', async () => {
       BorrowRequest.findByPk.mockResolvedValue(null);
@@ -131,12 +134,24 @@ describe('BorrowService', () => {
         .rejects.toThrow('Request not found');
     });
     
-    it('should return items if request exists and belongs to student or admin', async () => {
+    it('should return items if request exists and belongs to student', async () => {
       BorrowRequest.findByPk.mockResolvedValue({ RequestID: 20, UserID: 2 });
       BorrowedItem.findAll.mockResolvedValue([{ Equipment: { Name: 'XYZ' }, Quantity: 1 }]);
       const items = await BorrowService.getItemsForRequest({ Role: 'Student', UserID: 2 }, 20);
       expect(Array.isArray(items)).toBe(true);
       expect(items.length).toBe(1);
+    });
+  });
+
+  describe('getAllLogs', () => {
+    it('should return all audit logs', async () => {
+      AuditLog.findAll.mockResolvedValue([
+        { LogID: 1, Action: 'Create' },
+        { LogID: 2, Action: 'Update' }
+      ]);
+      const logs = await BorrowService.getAllLogs();
+      expect(Array.isArray(logs)).toBe(true);
+      expect(logs.length).toBe(2);
     });
   });
 });

@@ -4,9 +4,8 @@ const authenticateUser = require('../../src/middlewares/auth.middleware');
 
 jest.mock('jsonwebtoken');
 
-describe('authMiddleware', () => {
+describe('auth.middleware', () => {
   let req, res, next;
-
   beforeEach(() => {
     req = { headers: {} };
     res = {
@@ -16,7 +15,7 @@ describe('authMiddleware', () => {
     next = jest.fn();
   });
 
-  it('should return 401 if no authorization header', () => {
+  it('should return 401 if no authorization header is provided', () => {
     authenticateUser(req, res, next);
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ message: 'No authorization header provided' });
@@ -31,7 +30,7 @@ describe('authMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('should return 401 if jwt verification fails', () => {
+  it('should return 401 if token verification fails', () => {
     req.headers.authorization = 'Bearer badToken';
     jwt.verify.mockImplementation(() => { throw new Error('Invalid token'); });
     authenticateUser(req, res, next);
@@ -40,7 +39,7 @@ describe('authMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('should attach decoded user and call next if token is valid', () => {
+  it('should attach decoded user to req and call next if token is valid', () => {
     req.headers.authorization = 'Bearer goodToken';
     jwt.verify.mockReturnValue({ UserID: 123, Role: 'Admin' });
     authenticateUser(req, res, next);

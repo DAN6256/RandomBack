@@ -3,8 +3,6 @@ const request = require('supertest');
 const app = require('../../index');
 const { BorrowRequest, User, BorrowedItem } = require('../../src/models');
 
-// To bypass auth and role middleware, you might stub them out.
-// For simplicity, assume our test environment is set up with valid tokens or bypassed middleware.
 jest.mock('../../src/models', () => {
   const actual = jest.requireActual('../../src/models');
   return {
@@ -29,8 +27,8 @@ jest.mock('../../src/models', () => {
 });
 
 describe('BorrowController', () => {
-  afterAll(async () => {
-    // Cleanup if needed
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('POST /api/borrow/request', () => {
@@ -146,6 +144,27 @@ describe('BorrowController', () => {
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.items)).toBe(true);
       expect(res.body.items.length).toBe(1);
+    });
+  });
+
+  describe('GET /api/borrow/logs', () => {
+    it('should return all logs for admin', async () => {
+      // For logs, no authorization override is required here if your auth middleware passes.
+      const fakeLogs = [
+        { LogID: 1, Action: 'Create', Details: 'Test log' },
+        { LogID: 2, Action: 'Update', Details: 'Another log' }
+      ];
+      // We simulate the service call by mocking AuditLog.findAll via BorrowService.getAllLogs.
+      // Here we can directly mock BorrowRequest.findAll in our BorrowService tests,
+      // but since this is a controller test, we assume the service returns the fake logs.
+      const BorrowService = require('../../src/services/borrow.service');
+      jest.spyOn(BorrowService, 'getAllLogs').mockResolvedValue(fakeLogs);
+
+      const res = await request(app)
+        .get('/api/borrow/logs')
+        .set('Authorization', 'Bearer valid-admin-token');
+      expect(res.status).toBe(200);
+      expect(res.body.logs.length).toBe(2);
     });
   });
 });
