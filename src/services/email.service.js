@@ -29,8 +29,8 @@ const EmailService = {
     for (const item of borrowedItems) {
       const equipName = item.Equipment ? item.Equipment.Name : 'Unknown Equipment';
       const qty = item.Quantity || 1;
-      const desc = item.Description ? ` - ${item.Description}` : '';
-      itemDetails += ` - ${equipName} (Qty: ${qty})\n`;
+      const desc = item.Description ? ` | Description: "${item.Description}"` : '';
+      itemDetails += ` - ${equipName} (Qty: ${qty}${desc})\n`;
     }
 
     const mailOptionsStudent = {
@@ -68,7 +68,8 @@ const EmailService = {
       const qty = item.Quantity || 1;
       // If there's a serialNumber set, include it
       const sn = item.SerialNumber ? ` (SN: ${item.SerialNumber})` : '';
-      itemDetails += ` - ${equipName} x${qty}${sn}\n`;
+      const desc = item.Description ? ` | Description: "${item.Description}"` : '';
+      itemDetails += ` - ${equipName} x${qty}${sn}${desc}\n`;
     }
 
     const mailOptions = {
