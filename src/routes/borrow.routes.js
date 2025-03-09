@@ -230,4 +230,27 @@ router.get(
     BorrowController.getItemsForRequest
   );
 
+
+/**
+ * @swagger
+ * /api/borrow/logs:
+ *   get:
+ *     summary: Retrieve all audit logs (Admin only)
+ *     description: Returns all entries in the AuditLog table
+ *     tags: [Borrow]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all logs
+ *       403:
+ *         description: Unauthorized - Admin only
+ */
+router.get(
+  '/logs',
+  authMiddleware,
+  roleMiddleware(['Admin']), // ensure only Admin can access
+  BorrowController.getAllLogs
+);
+
 module.exports = router;

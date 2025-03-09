@@ -39,11 +39,14 @@ const BorrowService = {
     }
 
     // Audit log
+    const userLabel = student.Role === 'Admin' ? 'the admin' : student.Name;
+
     await AuditLog.create({
       UserID: userID,
       Action: 'Borrow',
       RequestID: borrowRequest.RequestID,
-      Details: `User ${userID} requested multiple items`,
+      // CHANGE:
+      Details: `${userLabel} requested some item(s)`, 
       Timestamp: new Date()
     });
 
@@ -146,11 +149,14 @@ const BorrowService = {
     await request.save();
 
     // Audit log
+    const returningUser = await User.unscoped().findByPk(request.UserID);
+    const userLabel = returningUser && returningUser.Role === 'Admin' ? 'the admin' : (returningUser ? returningUser.Name : 'Unknown user');
+
     await AuditLog.create({
       UserID: request.UserID,
       RequestID: requestID,
       Action: 'Return',
-      Details: `User ${request.UserID} returned request #${requestID}`,
+      Details: `${userLabel} returned borrow request #${requestID}`, 
       Timestamp: new Date()
     });
 
@@ -185,11 +191,12 @@ const BorrowService = {
           Sent: true
         });
 
+        const userLabel = student.Role === 'Admin' ? 'the admin' : student.Name;
         await AuditLog.create({
           UserID: request.UserID,
           RequestID: request.RequestID,
           Action: 'Notify',
-          Details: `Reminder sent to user ${request.UserID} for request #${request.RequestID}`,
+          Details: `Reminder sent to ${userLabel} for request #${request.RequestID}`, 
           Timestamp: new Date()
         });
 
@@ -252,6 +259,14 @@ const BorrowService = {
     });
 
     return items;
+  },
+  getAllLogs: async () => {
+    // Return all logs sorted by newest first. 
+    // Include the user to see role (but Password is hidden by default scope).
+    return await AuditLog.findAll({
+      order: [['LogID', 'DESC']],
+      include: [User]
+    });
   }
 
 };

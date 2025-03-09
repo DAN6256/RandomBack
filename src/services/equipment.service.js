@@ -7,7 +7,7 @@ const EquipmentService = {
     await AuditLog.create({
       UserID: userID,
       Action: 'Create',
-      Details: `Equipment added: ${name}`,
+      Details: `Equipment added by Admin: ${name}`,
       Timestamp: new Date()
     });
 
@@ -24,7 +24,7 @@ const EquipmentService = {
     await AuditLog.create({
       UserID: userID,
       Action: 'Update',
-      Details: `Equipment ${equipmentID} updated`,
+      Details: `Equipment ${equipmentID} updated by Admin`,
       Timestamp: new Date()
     });
 
@@ -40,7 +40,7 @@ const EquipmentService = {
     await AuditLog.create({
       UserID: userID,
       Action: 'Delete',
-      Details: `Equipment ${equipmentID} deleted`,
+      Details: `Equipment ${equipmentID} deleted by Admin`,
       Timestamp: new Date()
     });
 

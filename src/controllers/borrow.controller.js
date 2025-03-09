@@ -75,7 +75,15 @@ const BorrowController = {
     } catch (error) {
       res.status(404).json({ message: error.message });
     }
-  }
+  },
+  getAllLogs: async (req, res) => {
+      try {
+        const logs = await BorrowService.getAllLogs();
+        res.status(200).json({ logs });
+      } catch (error) {
+        res.status(400).json({ message: error.message });
+      }
+    }
 };
 
 module.exports = BorrowController;
