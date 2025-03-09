@@ -1,15 +1,11 @@
-/**
- * test/unit/role.middleware.test.js
- *
- * Unit tests for roleMiddleware.
- */
+// FILE: test/unit/role.middleware.test.js
 const roleMiddleware = require('../../src/middlewares/role.middleware');
 
 describe('roleMiddleware', () => {
   let req, res, next;
 
   beforeEach(() => {
-    req = { user: {} }; // we'll set user props
+    req = { user: {} };
     res = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn()
@@ -21,7 +17,6 @@ describe('roleMiddleware', () => {
     req.user.Role = 'Admin';
     const mw = roleMiddleware(['Admin', 'SuperAdmin']);
     mw(req, res, next);
-
     expect(next).toHaveBeenCalled();
     expect(res.status).not.toHaveBeenCalled();
   });
@@ -30,11 +25,8 @@ describe('roleMiddleware', () => {
     req.user.Role = 'Student';
     const mw = roleMiddleware(['Admin']);
     mw(req, res, next);
-
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({
-      message: 'Forbidden: Insufficient role privileges'
-    });
+    expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden: Insufficient role privileges' });
   });
 });

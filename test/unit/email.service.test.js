@@ -1,19 +1,14 @@
-/**
- * test/unit/email.service.test.js
- *
- * Unit tests for email.service.js
- * We mock nodemailer to verify sendMail calls.
- */
+// FILE: test/unit/email.service.test.js
 const nodemailer = require('nodemailer');
 const EmailService = require('../../src/services/email.service');
 
+// CHANGE: mock nodemailer properly
 jest.mock('nodemailer');
 
 describe('EmailService', () => {
   let sendMailMock;
-
+  
   beforeAll(() => {
-    // mock createTransport to return an object with sendMail
     sendMailMock = jest.fn().mockResolvedValue({});
     nodemailer.createTransport.mockReturnValue({
       sendMail: sendMailMock
@@ -25,7 +20,7 @@ describe('EmailService', () => {
   });
 
   describe('sendBorrowRequestNotification', () => {
-    it('should send two emails: one to student, one to admin', async () => {
+    it('should send two emails (one to student and one to admin) with item details and collection date/time', async () => {
       const borrowedItems = [
         { Equipment: { Name: '3D Printer' }, Quantity: 2, Description: 'For project' },
         { Equipment: { Name: 'Laser Cutter' }, Quantity: 1 }
@@ -40,29 +35,24 @@ describe('EmailService', () => {
       );
 
       expect(sendMailMock).toHaveBeenCalledTimes(2);
-
-      // First call = student mail
-      const [studentMailOptions] = sendMailMock.mock.calls[0];
-      expect(studentMailOptions.to).toBe('student@example.com');
-      expect(studentMailOptions.subject).toBe('Borrow Request #101 Submitted');
-      expect(studentMailOptions.text).toMatch(/StudentName/);
-      expect(studentMailOptions.text).toMatch(/3D Printer/);
-      expect(studentMailOptions.text).toMatch(/Laser Cutter/);
-
-      // Second call = admin mail
-      const [adminMailOptions] = sendMailMock.mock.calls[1];
-      expect(adminMailOptions.to).toBe('admin@example.com');
-      expect(adminMailOptions.subject).toBe('New Borrow Request #101');
-      expect(adminMailOptions.text).toMatch(/pick-up date\/time: 2025-12-01T10:00:00Z/);
+      const [studentMail] = sendMailMock.mock.calls[0];
+      expect(studentMail.to).toBe('student@example.com');
+      expect(studentMail.subject).toBe('Borrow Request #101 Submitted');
+      expect(studentMail.text).toMatch(/Dear StudentName/);
+      expect(studentMail.text).toMatch(/3D Printer/);
+      expect(studentMail.text).toMatch(/For project/);
+      const [adminMail] = sendMailMock.mock.calls[1];
+      expect(adminMail.to).toBe('admin@example.com');
+      expect(adminMail.subject).toBe('New Borrow Request #101');
+      expect(adminMail.text).toMatch(/Requested pick-up date\/time: 2025-12-01T10:00:00Z/);
     });
   });
 
   describe('sendApprovalNotification', () => {
-    it('should send an email to the student with approved items', async () => {
+    it('should send an email to the student with approved items including description and SN', async () => {
       const approvedItems = [
         { Equipment: { Name: 'Motor' }, Quantity: 3, SerialNumber: 'SN123', Description: 'Robot motor' }
       ];
-
       await EmailService.sendApprovalNotification(
         'StudentName',
         'student@example.com',
@@ -81,12 +71,8 @@ describe('EmailService', () => {
   });
 
   describe('sendReturnConfirmation', () => {
-    it('should inform the student that the request was returned', async () => {
-      await EmailService.sendReturnConfirmation(
-        'StudentName',
-        'student@example.com',
-        303
-      );
+    it('should send a return confirmation email to the student', async () => {
+      await EmailService.sendReturnConfirmation('StudentName', 'student@example.com', 303);
       expect(sendMailMock).toHaveBeenCalledTimes(1);
       const [mailOptions] = sendMailMock.mock.calls[0];
       expect(mailOptions.to).toBe('student@example.com');
@@ -96,13 +82,8 @@ describe('EmailService', () => {
   });
 
   describe('sendReminder', () => {
-    it('should send a reminder about due date', async () => {
-      await EmailService.sendReminder(
-        'StudentName',
-        'student@example.com',
-        404,
-        '2025-12-10T00:00:00Z'
-      );
+    it('should send a reminder email with the due date', async () => {
+      await EmailService.sendReminder('StudentName', 'student@example.com', 404, '2025-12-10T00:00:00Z');
       expect(sendMailMock).toHaveBeenCalledTimes(1);
       const [mailOptions] = sendMailMock.mock.calls[0];
       expect(mailOptions.subject).toBe('Equipment Return Reminder');

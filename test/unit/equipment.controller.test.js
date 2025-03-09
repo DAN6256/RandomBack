@@ -1,13 +1,8 @@
-/**
- * test/unit/equipment.controller.test.js
- *
- * Tests for the /api/equipment routes.
- */
+// FILE: test/unit/equipment.controller.test.js
 const request = require('supertest');
-const app = require('../../index'); // from project root
+const app = require('../../index');
 const { Equipment } = require('../../src/models');
 
-// Optionally mock out Equipment in some cases, or just do minimal checks
 jest.mock('../../src/models', () => {
   const actual = jest.requireActual('../../src/models');
   return {
@@ -23,21 +18,17 @@ jest.mock('../../src/models', () => {
 
 describe('EquipmentController', () => {
   afterAll(async () => {
-    // close resources if needed
+    // Close connections if needed
   });
 
   describe('POST /api/equipment', () => {
     it('should add new equipment if user is Admin', async () => {
-      // We can mock an admin token or bypass role check, depending on your test approach
-      // For brevity, let's just mock the DB calls:
       Equipment.create.mockResolvedValue({ EquipmentID: 100, Name: 'New Equip' });
-
-      // We can simulate an Admin JWT or just skip if your test environment is open
       const res = await request(app)
         .post('/api/equipment')
-        // .set('Authorization', 'Bearer <some valid admin token>')
+        // Bypass auth/role middleware if needed by setting a valid token header.
+        .set('Authorization', 'Bearer valid-admin-token')
         .send({ name: 'New Equip' });
-
       expect(res.status).toBe(201);
       expect(res.body.equipment.Name).toBe('New Equip');
     });
@@ -45,19 +36,16 @@ describe('EquipmentController', () => {
 
   describe('PUT /api/equipment/:equipmentID', () => {
     it('should update equipment details if user is Admin', async () => {
-      const fakeEquip = { EquipmentID: 10, Name: 'OldName' };
+      const fakeEquip = { EquipmentID: 10, Name: 'OldName', save: jest.fn().mockResolvedValue() };
       Equipment.findByPk.mockResolvedValue(fakeEquip);
-      Equipment.create.mockResolvedValue({});
-
       const res = await request(app)
         .put('/api/equipment/10')
-        // .set('Authorization', 'Bearer <admin token>')
+        .set('Authorization', 'Bearer valid-admin-token')
         .send({ name: 'UpdatedName' });
-
       expect(res.status).toBe(200);
       expect(res.body.updatedEquipment.Name).toBe('UpdatedName');
     });
   });
 
-  // Similarly test DELETE, GET all, GET by ID, etc.
+  // Additional tests for DELETE, GET all, and GET by ID can be added similarly.
 });
