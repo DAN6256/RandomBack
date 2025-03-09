@@ -25,7 +25,12 @@ const approveBorrowSchema = Joi.object({
   ).min(1).required()
 });
 
+const getBorrowItemsSchema = Joi.object({
+  requestID: Joi.number().integer().required()
+});
+
 module.exports = {
   requestBorrowSchema,
-  approveBorrowSchema
+  approveBorrowSchema,
+  getBorrowItemsSchema
 };

@@ -65,6 +65,16 @@ const BorrowController = {
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
+  },
+  getItemsForRequest: async (req, res) => {
+    try {
+      const { requestID } = req.params;
+      const user = req.user; 
+      const items = await BorrowService.getItemsForRequest(user, requestID);
+      res.status(200).json({ items });
+    } catch (error) {
+      res.status(404).json({ message: error.message });
+    }
   }
 };
 

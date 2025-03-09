@@ -154,6 +154,11 @@ const BorrowService = {
       Timestamp: new Date()
     });
 
+    const student = await User.findByPk(request.UserID, { unscoped: true });
+    if (student) {
+      await EmailService.sendReturnConfirmation(student.Name, student.Email, requestID);
+    }
+
     return request;
   },
 
@@ -229,9 +234,25 @@ const BorrowService = {
         include: [User]
       });
     }
+  },
+  getItemsForRequest: async (user, requestID) => {
+    // 1. find the request
+    const request = await BorrowRequest.findByPk(requestID);
+    if (!request) throw new Error('Request not found');
+
+    // 2. If user is a Student, ensure it belongs to them
+    if (user.Role === 'Student' && request.UserID !== user.UserID) {
+      throw new Error('You do not have permission to view items for this request');
+    }
+
+    // 3. get all borrowed items for that request
+    const items = await BorrowedItem.findAll({
+      where: { RequestID: requestID },
+      include: [{ model: Equipment }]
+    });
+
+    return items;
   }
-
-
 
 };
 

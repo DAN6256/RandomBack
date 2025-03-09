@@ -29,6 +29,7 @@ const EmailService = {
     for (const item of borrowedItems) {
       const equipName = item.Equipment ? item.Equipment.Name : 'Unknown Equipment';
       const qty = item.Quantity || 1;
+      const desc = item.Description ? ` - ${item.Description}` : '';
       itemDetails += ` - ${equipName} (Qty: ${qty})\n`;
     }
 

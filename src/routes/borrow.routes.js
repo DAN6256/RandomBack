@@ -4,7 +4,7 @@ const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware');
 
 const validate = require('../validations/validate');
-const { requestBorrowSchema, approveBorrowSchema } = require('../validations/borrowValidations');
+const { requestBorrowSchema, approveBorrowSchema, getBorrowItemsSchema } = require('../validations/borrowValidations');
 
 const router = express.Router();
 
@@ -201,5 +201,33 @@ router.post('/send-reminder', authMiddleware, roleMiddleware(['Admin']), BorrowC
   */
  router.get('/pending-requests', authMiddleware, BorrowController.getPendingRequests);
  
+/**
+ * @swagger
+ * /api/borrow/{requestID}/items:
+ *   get:
+ *     summary: Get all items for a specific borrow request
+ *     description: Return the BorrowedItem records associated with this request
+ *     tags: [Borrow]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: requestID
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The ID of the borrow request
+ *     responses:
+ *       200:
+ *         description: Returns list of items for that request
+ *       404:
+ *         description: Request not found
+ */
+router.get(
+    '/:requestID/items',
+    authMiddleware,
+    validate(getBorrowItemsSchema, 'params'), // second arg in validate can indicate "req.params"
+    BorrowController.getItemsForRequest
+  );
 
 module.exports = router;
