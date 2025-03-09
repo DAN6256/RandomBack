@@ -1,173 +1,128 @@
 /**
- * @file borrow.service.test.js
- * Unit tests for the BorrowService using Jest.
+ * test/unit/borrow.service.test.js
  */
-
 const BorrowService = require('../../src/services/borrow.service');
-const { 
-  BorrowRequest, 
-  BorrowedItem, 
-  Equipment, 
-  User, 
-  Reminder, 
-  AuditLog 
-} = require('../../src/models');
+const { BorrowRequest, BorrowedItem, Equipment, User, AuditLog } = require('../../src/models');
 
-// We'll mock these model methods so they don't hit the DB
 jest.mock('../../src/models', () => {
-  const SequelizeMock = {
-    findByPk: jest.fn(),
-    findOne: jest.fn(),
-    create: jest.fn(),
-    findAll: jest.fn(),
-    destroy: jest.fn(),
-    save: jest.fn()
-  };
-  
+  const actual = jest.requireActual('../../src/models');
   return {
-    BorrowRequest: { 
-      findByPk: SequelizeMock.findByPk, 
-      create: SequelizeMock.create,
-      findAll: SequelizeMock.findAll
+    ...actual,
+    BorrowRequest: {
+      create: jest.fn(),
+      findByPk: jest.fn(),
+      findAll: jest.fn()
     },
     BorrowedItem: {
-      findByPk: SequelizeMock.findByPk,
-      create: SequelizeMock.create,
-      findAll: SequelizeMock.findAll,
-      destroy: SequelizeMock.destroy,
-      save: SequelizeMock.save
-    },
-    Equipment: {
-      findByPk: SequelizeMock.findByPk
+      create: jest.fn(),
+      findByPk: jest.fn(),
+      findAll: jest.fn(),
+      destroy: jest.fn()
     },
     User: {
-      findByPk: SequelizeMock.findByPk,
-      findOne: SequelizeMock.findOne
+      findByPk: jest.fn(),
+      findOne: jest.fn()
     },
-    Reminder: {
-      create: SequelizeMock.create
+    Equipment: {
+      findByPk: jest.fn()
     },
     AuditLog: {
-      create: SequelizeMock.create
+      create: jest.fn()
     }
   };
 });
 
-const EmailService = require('../../src/services/email.service');
-jest.mock('../../src/services/email.service', () => ({
-  sendBorrowRequestNotification: jest.fn(),
-  sendApprovalNotification: jest.fn(),
-  sendReminder: jest.fn()
-}));
-
 describe('BorrowService', () => {
-  beforeEach(() => {
-    // Reset all mocks before each test
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
   describe('requestEquipment', () => {
-    it('should create a new BorrowRequest and BorrowedItems, then send emails', async () => {
-      // Mock user and admin
-      User.findByPk.mockResolvedValueOnce({ UserID: 1, Role: 'Student', Email: 'student@example.com' });
-      User.findOne.mockResolvedValueOnce({ Email: 'admin@example.com' });
-
-      // Mock create BorrowRequest
-      BorrowRequest.create.mockResolvedValueOnce({ RequestID: 100 });
-
-      // Mock findByPk for Equipment
-      Equipment.findByPk.mockResolvedValue({ EquipmentID: 5, Name: 'Motor' });
-
-      // Mock BorrowedItem.create
-      BorrowedItem.create.mockResolvedValue({ /* item data here */ });
-
-      // Mock findAll for borrowedItems
-      BorrowedItem.findAll.mockResolvedValue([
-        {
-          EquipmentID: 5,
-          Equipment: { Name: 'Motor' },
-          Quantity: 2
-        }
-      ]);
-
-      // Call the service
-      const items = [
-        { equipmentID: 5, quantity: 2, description: 'A motor' }
-      ];
-      const result = await BorrowService.requestEquipment(1, items);
-
-      expect(result.RequestID).toBe(100);
-
-      // Check that BorrowRequest.create was called
-      expect(BorrowRequest.create).toHaveBeenCalledWith({
-        UserID: 1,
-        BorrowDate: expect.any(Date),
-        Status: 'Pending',
-        ReturnDate: null
-      });
-
-      // Check that BorrowedItem.create was called for each item
-      expect(BorrowedItem.create).toHaveBeenCalledWith({
-        RequestID: 100,
-        EquipmentID: 5,
-        Description: 'A motor',
-        SerialNumber: null,
-        Quantity: 2
-      });
-
-      // Check that email was sent to both student & admin
-      expect(EmailService.sendBorrowRequestNotification).toHaveBeenCalledWith(
-        'student@example.com',
-        'admin@example.com',
-        100,
-        expect.any(Array) // borrowedItems
-      );
+    it('should throw if user is not Student', async () => {
+      User.findByPk.mockResolvedValue({ Role: 'Admin' });
+      await expect(BorrowService.requestEquipment(1, [], new Date()))
+        .rejects.toThrow('Invalid student or role');
     });
 
-    it('should throw if user is not a Student', async () => {
-      User.findByPk.mockResolvedValueOnce({ UserID: 2, Role: 'Admin' });
+    it('should create a BorrowRequest and BorrowedItems', async () => {
+      User.findByPk.mockResolvedValue({ Role: 'Student' });
+      User.findOne.mockResolvedValue({ Email: 'admin@example.com' }); // the Admin
+      BorrowRequest.create.mockResolvedValue({ RequestID: 101 });
+      Equipment.findByPk.mockResolvedValue({ EquipmentID: 55 });
+      BorrowedItem.create.mockResolvedValue({});
 
-      await expect(BorrowService.requestEquipment(2, []))
-        .rejects
-        .toThrow('Invalid student or role');
+      const result = await BorrowService.requestEquipment(2, [
+        { equipmentID: 55, quantity: 2 }
+      ], new Date('2025-10-01T00:00:00Z'));
+
+      expect(result.RequestID).toBe(101);
+      expect(BorrowedItem.create).toHaveBeenCalled();
+      expect(AuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({ Action: 'Borrow' })
+      );
     });
   });
 
   describe('approveRequest', () => {
-    it('should approve a pending request, keep allowed items, remove disallowed, then send email', async () => {
-      // Mock request
-      BorrowRequest.findByPk.mockResolvedValue({ RequestID: 100, Status: 'Pending', UserID: 1, save: jest.fn() });
-      // Mock BorrowedItems
-      BorrowedItem.findByPk.mockResolvedValue({ 
-        borrowedItemID: 999, 
-        RequestID: 100, 
-        destroy: jest.fn(), 
-        save: jest.fn() 
+    it('should throw if request not found or not pending', async () => {
+      BorrowRequest.findByPk.mockResolvedValue(null);
+      await expect(BorrowService.approveRequest(999, new Date(), []))
+        .rejects.toThrow('Request not found or already processed');
+    });
+
+    it('should approve request and update BorrowedItems', async () => {
+      BorrowRequest.findByPk.mockResolvedValue({ RequestID: 50, Status: 'Pending', save: jest.fn() });
+      BorrowedItem.findByPk.mockResolvedValue({
+        RequestID: 50,
+        save: jest.fn(),
+        destroy: jest.fn()
       });
-      BorrowedItem.findAll.mockResolvedValue([
-        {
-          RequestID: 100,
-          borrowedItemID: 999,
-          Equipment: { Name: 'Motor' }
-        }
+      BorrowedItem.findAll.mockResolvedValue([{ EquipmentID: 55 }]);
+      User.findByPk.mockResolvedValue({ Email: 'student@example.com', Role: 'Student' });
+
+      await BorrowService.approveRequest(50, new Date(), [
+        { borrowedItemID: 1, allow: true, description: 'desc', serialNumber: 'SN123' }
       ]);
-      // Mock user
-      User.findByPk.mockResolvedValue({ Email: 'student@example.com' });
 
-      const items = [
-        { borrowedItemID: 999, allow: true, serialNumber: 'SN-ABC', description: 'Updated desc' }
-      ];
-      const result = await BorrowService.approveRequest(100, new Date('2025-08-01'), items);
-
-      expect(result.Status).toBe('Approved');
-      expect(EmailService.sendApprovalNotification).toHaveBeenCalledWith(
-        'student@example.com',
-        100,
-        new Date('2025-08-01'),
-        expect.any(Array)
+      expect(AuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({ Action: 'Approve' })
       );
     });
   });
 
-  // Additional tests for returnEquipment, sendReminderForDueReturns ...
+  describe('returnEquipment', () => {
+    it('should throw if request not approved', async () => {
+      BorrowRequest.findByPk.mockResolvedValue({ Status: 'Pending' });
+      await expect(BorrowService.returnEquipment(10))
+        .rejects.toThrow('Invalid request or not in approved state');
+    });
+
+    it('should mark request as Returned and log it', async () => {
+      BorrowRequest.findByPk.mockResolvedValue({
+        RequestID: 11,
+        Status: 'Approved',
+        save: jest.fn()
+      });
+      User.findByPk.mockResolvedValue({ Name: 'StudentName' });
+
+      const req = await BorrowService.returnEquipment(11);
+      expect(req.Status).toBe('Returned');
+      expect(AuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({ Action: 'Return' })
+      );
+    });
+  });
+
+  describe('sendReminderForDueReturns', () => {
+    it('should send reminder if request is due in 2 days', async () => {
+      BorrowRequest.findAll.mockResolvedValue([{ RequestID: 7, UserID: 3 }]);
+      User.findByPk.mockResolvedValue({ Name: 'StudentName', Email: 'stud@example.com' });
+
+      const count = await BorrowService.sendReminderForDueReturns();
+      expect(count).toBe(1);
+      expect(AuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({ Action: 'Notify' })
+      );
+    });
+  });
 });

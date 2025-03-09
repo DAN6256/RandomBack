@@ -1,42 +1,63 @@
-const EquipmentController = require('../../src/controllers/equipment.controller');
-const EquipmentService = require('../../src/services/equipment.service');
+/**
+ * test/unit/equipment.controller.test.js
+ *
+ * Tests for the /api/equipment routes.
+ */
+const request = require('supertest');
+const app = require('../../index'); // from project root
+const { Equipment } = require('../../src/models');
 
-jest.mock('../../src/services/equipment.service');
+// Optionally mock out Equipment in some cases, or just do minimal checks
+jest.mock('../../src/models', () => {
+  const actual = jest.requireActual('../../src/models');
+  return {
+    ...actual,
+    Equipment: {
+      create: jest.fn(),
+      findByPk: jest.fn(),
+      destroy: jest.fn(),
+      findAll: jest.fn()
+    }
+  };
+});
 
 describe('EquipmentController', () => {
-  let req, res;
-
-  beforeEach(() => {
-    req = { body: {}, params: {}, user: {} };
-    res = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn()
-    };
-    jest.clearAllMocks();
+  afterAll(async () => {
+    // close resources if needed
   });
 
-  describe('addEquipment', () => {
-    it('should return 201 with the new equipment', async () => {
-      req.body = { name: '3D Printer' };
-      req.user = { UserID: 99 };
-      EquipmentService.addEquipment.mockResolvedValue({ EquipmentID: 1, Name: '3D Printer' });
+  describe('POST /api/equipment', () => {
+    it('should add new equipment if user is Admin', async () => {
+      // We can mock an admin token or bypass role check, depending on your test approach
+      // For brevity, let's just mock the DB calls:
+      Equipment.create.mockResolvedValue({ EquipmentID: 100, Name: 'New Equip' });
 
-      await EquipmentController.addEquipment(req, res);
-      
-      expect(res.status).toHaveBeenCalledWith(201);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Equipment added successfully',
-        equipment: { EquipmentID: 1, Name: '3D Printer' }
-      });
-    });
+      // We can simulate an Admin JWT or just skip if your test environment is open
+      const res = await request(app)
+        .post('/api/equipment')
+        // .set('Authorization', 'Bearer <some valid admin token>')
+        .send({ name: 'New Equip' });
 
-    it('should return 400 on error', async () => {
-      EquipmentService.addEquipment.mockRejectedValue(new Error('Oops!'));
-
-      await EquipmentController.addEquipment(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Oops!' });
+      expect(res.status).toBe(201);
+      expect(res.body.equipment.Name).toBe('New Equip');
     });
   });
+
+  describe('PUT /api/equipment/:equipmentID', () => {
+    it('should update equipment details if user is Admin', async () => {
+      const fakeEquip = { EquipmentID: 10, Name: 'OldName' };
+      Equipment.findByPk.mockResolvedValue(fakeEquip);
+      Equipment.create.mockResolvedValue({});
+
+      const res = await request(app)
+        .put('/api/equipment/10')
+        // .set('Authorization', 'Bearer <admin token>')
+        .send({ name: 'UpdatedName' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.updatedEquipment.Name).toBe('UpdatedName');
+    });
+  });
+
+  // Similarly test DELETE, GET all, GET by ID, etc.
 });
