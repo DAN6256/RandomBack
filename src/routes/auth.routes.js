@@ -5,10 +5,11 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 require('dotenv').config();
 
-const authMiddleware = require('../middlewares/auth.middleware'); // If you need it, though probably not for /signup /login
-const roleMiddleware = require('../middlewares/role.middleware'); // Possibly not used here
 const validate = require('../validations/validate');
 const { signupSchema, loginSchema } = require('../validations/authValidations');
+
+
+const AuthController = require('../controllers/auth.controller');
 
 /**
  * @swagger
@@ -59,33 +60,11 @@ const { signupSchema, loginSchema } = require('../validations/authValidations');
  *       400:
  *         description: Bad request (e.g. email already taken)
  */
-router.post('/signup', validate(signupSchema), async (req, res) => {
-  try {
-    const { email, password, name, role } = req.body;
-
-    const existing = await User.findOne({ where: { Email: email } });
-    if (existing) {
-      return res.status(400).json({ message: 'Email already taken' });
-    }
-
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    const newUser = await User.create({
-      Name: name,
-      Email: email,
-      Role: role,
-      Password: hashedPassword
-    });
-
-    return res.status(201).json({
-      message: 'User registered successfully',
-      userID: newUser.UserID
-    });
-  } catch (error) {
-    return res.status(400).json({ message: error.message });
-  }
-});
+router.post(
+  '/signup',
+  validate(signupSchema),
+  AuthController.signUp
+);
 
 /**
  * @swagger
@@ -127,37 +106,10 @@ router.post('/signup', validate(signupSchema), async (req, res) => {
  *       400:
  *         description: Bad request
  */
-router.post('/login', validate(loginSchema), async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const user = await User.unscoped().findOne({ where: { Email: email } }); 
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    const match = await bcrypt.compare(password, user.Password);
-    if (!match) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign(
-      {
-        UserID: user.UserID,
-        Email: user.Email,
-        Role: user.Role
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '60m' } // or '1h'
-    );
-
-    return res.status(200).json({
-      message: 'Login successful',
-      token
-    });
-  } catch (error) {
-    return res.status(400).json({ message: error.message });
-  }
-});
+router.post(
+  '/login',
+  validate(loginSchema),
+  AuthController.login
+);
 
 module.exports = router;
