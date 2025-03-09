@@ -17,8 +17,14 @@ const sequelize = new Sequelize(
       idle: 10000
     },
     define: {
-      timestamps: true // Create createdAt & updatedAt by default (we can override per model)
-    }
+      timestamps: true // Creates createdAt & updatedAt automatically
+    },
+    dialectOptions: process.env.DB_SSL === 'true' ? {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    } : {}
   }
 );
 
