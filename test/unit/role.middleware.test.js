@@ -1,10 +1,15 @@
+/**
+ * test/unit/role.middleware.test.js
+ *
+ * Unit tests for roleMiddleware.
+ */
 const roleMiddleware = require('../../src/middlewares/role.middleware');
 
-describe('role.middleware', () => {
+describe('roleMiddleware', () => {
   let req, res, next;
 
   beforeEach(() => {
-    req = { user: {} };
+    req = { user: {} }; // we'll set user props
     res = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn()
@@ -12,23 +17,24 @@ describe('role.middleware', () => {
     next = jest.fn();
   });
 
-  it('should call next if role is allowed', () => {
+  it('should call next if user role is in allowedRoles', () => {
     req.user.Role = 'Admin';
-    const middleware = roleMiddleware(['Admin', 'Student']);
-
-    middleware(req, res, next);
+    const mw = roleMiddleware(['Admin', 'SuperAdmin']);
+    mw(req, res, next);
 
     expect(next).toHaveBeenCalled();
+    expect(res.status).not.toHaveBeenCalled();
   });
 
-  it('should return 403 if role is not allowed', () => {
+  it('should return 403 if user role is not allowed', () => {
     req.user.Role = 'Student';
-    const middleware = roleMiddleware(['Admin']);
+    const mw = roleMiddleware(['Admin']);
+    mw(req, res, next);
 
-    middleware(req, res, next);
-
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden: Insufficient role privileges' });
     expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Forbidden: Insufficient role privileges'
+    });
   });
 });

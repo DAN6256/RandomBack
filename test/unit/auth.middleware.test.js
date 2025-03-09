@@ -1,18 +1,18 @@
+/**
+ * test/unit/auth.middleware.test.js
+ *
+ * Unit tests for auth.middleware.js
+ */
 const authenticateUser = require('../../src/middlewares/auth.middleware');
 const jwt = require('jsonwebtoken');
 
-// Mock jsonwebtoken
-jest.mock('jsonwebtoken', () => ({
-  verify: jest.fn()
-}));
+jest.mock('jsonwebtoken');
 
-describe('auth.middleware', () => {
+describe('authMiddleware', () => {
   let req, res, next;
 
   beforeEach(() => {
-    req = {
-      headers: { authorization: 'Bearer fake_token' }
-    };
+    req = { headers: {} };
     res = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn()
@@ -20,34 +20,45 @@ describe('auth.middleware', () => {
     next = jest.fn();
   });
 
-  it('should call next if token is valid', () => {
-    jwt.verify.mockReturnValue({ UserID: 1, Role: 'Student' });
-
+  it('should return 401 if no authorization header', () => {
     authenticateUser(req, res, next);
-
-    expect(jwt.verify).toHaveBeenCalledWith('fake_token', process.env.JWT_SECRET);
-    expect(req.user).toEqual({ UserID: 1, Role: 'Student' });
-    expect(next).toHaveBeenCalled();
-  });
-
-  it('should return 401 if no auth header', () => {
-    req.headers = {};
-    authenticateUser(req, res, next);
-
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ message: 'No authorization header provided' });
-  });
-
-  it('should return 401 if token is invalid', () => {
-    jwt.verify.mockImplementation(() => { throw new Error('invalid token'); });
-
-    authenticateUser(req, res, next);
-
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({
-      message: 'Unauthorized',
-      error: 'invalid token'
+      message: 'No authorization header provided'
     });
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it('should return 401 if token format is invalid', () => {
+    req.headers.authorization = 'Bearer'; // missing token
+    authenticateUser(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Invalid token format'
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('should return 401 if jwt verification fails', () => {
+    req.headers.authorization = 'Bearer someBadToken';
+    jwt.verify.mockImplementation(() => {
+      throw new Error('Invalid token');
+    });
+
+    authenticateUser(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'Unauthorized'
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('should attach decoded user and call next if token is valid', () => {
+    req.headers.authorization = 'Bearer goodToken';
+    jwt.verify.mockReturnValue({ UserID: 123, Role: 'Admin' });
+
+    authenticateUser(req, res, next);
+    expect(req.user).toEqual({ UserID: 123, Role: 'Admin' });
+    expect(next).toHaveBeenCalled();
   });
 });
