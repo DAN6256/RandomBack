@@ -22,7 +22,7 @@ describe('EquipmentController', () => {
   });
 
   describe('POST /api/equipment', () => {
-    it('should add new equipment if user is Admin', async () => {
+    it('should add new equipment if payload is valid and user is Admin', async () => {
       Equipment.create.mockResolvedValue({ EquipmentID: 100, Name: 'New Equip' });
       const res = await request(app)
         .post('/api/equipment')
@@ -31,10 +31,19 @@ describe('EquipmentController', () => {
       expect(res.status).toBe(201);
       expect(res.body.equipment.Name).toBe('New Equip');
     });
+
+    it('should return 400 if payload is invalid (missing name)', async () => {
+      const res = await request(app)
+        .post('/api/equipment')
+        .set('Authorization', 'Bearer valid-admin-token')
+        .send({});
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/"name" is required/i);
+    });
   });
 
   describe('PUT /api/equipment/:equipmentID', () => {
-    it('should update equipment details if user is Admin', async () => {
+    it('should update equipment details if payload is valid and user is Admin', async () => {
       const fakeEquip = { EquipmentID: 10, Name: 'OldName', save: jest.fn().mockResolvedValue({ EquipmentID: 10, Name: 'UpdatedName' }) };
       Equipment.findByPk.mockResolvedValue(fakeEquip);
       const res = await request(app)

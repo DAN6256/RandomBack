@@ -3,6 +3,7 @@ const request = require('supertest');
 const app = require('../../index');
 const { BorrowRequest, User, BorrowedItem } = require('../../src/models');
 
+// Mock models for BorrowController tests
 jest.mock('../../src/models', () => {
   const actual = jest.requireActual('../../src/models');
   return {
@@ -26,13 +27,30 @@ jest.mock('../../src/models', () => {
   };
 });
 
+// Bypass auth middleware by mocking it so that it always attaches a valid user.
+jest.mock('../../src/middlewares/auth.middleware', () => {
+  return (req, res, next) => {
+    // For tests of student endpoints, we set Student; for admin endpoints, we override later.
+    req.user = { UserID: 2, Role: 'Student', Name: 'Alice' };
+    next();
+  };
+});
+
+// Bypass role middleware similarly if necessary.
+jest.mock('../../src/middlewares/role.middleware', () => {
+  return (allowedRoles) => (req, res, next) => {
+    req.user = { UserID: 2, Role: allowedRoles.includes('Admin') ? 'Admin' : 'Student', Name: 'Alice' };
+    next();
+  };
+});
+
 describe('BorrowController', () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
 
   describe('POST /api/borrow/request', () => {
-    it('should create a new borrow request if user is Student', async () => {
+    it('should create a new borrow request if payload is valid and user is Student', async () => {
       User.findByPk.mockResolvedValue({ Role: 'Student', Name: 'Alice' });
       User.findOne.mockResolvedValue({ Email: 'admin@example.com' });
       BorrowRequest.create.mockResolvedValue({ RequestID: 101, CollectionDateTime: '2025-10-01T10:00:00Z' });
@@ -52,6 +70,30 @@ describe('BorrowController', () => {
       expect(res.body.borrowRequest.RequestID).toBe(101);
     });
 
+    it('should return 400 if required field collectionDateTime is missing', async () => {
+      const res = await request(app)
+        .post('/api/borrow/request')
+        .set('Authorization', 'Bearer valid-student-token')
+        .send({
+          items: [{ equipmentID: 55, quantity: 2, description: 'For project' }]
+          // collectionDateTime is missing
+        });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/"collectionDateTime" is required/i);
+    });
+
+    it('should return 400 if items array is missing or empty', async () => {
+      const res = await request(app)
+        .post('/api/borrow/request')
+        .set('Authorization', 'Bearer valid-student-token')
+        .send({
+          collectionDateTime: '2025-10-01T10:00:00Z'
+          // items missing
+        });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/"items" is required/i);
+    });
+
     it('should fail if user is not Student', async () => {
       User.findByPk.mockResolvedValue({ Role: 'Admin' });
       const res = await request(app)
@@ -67,7 +109,10 @@ describe('BorrowController', () => {
   });
 
   describe('PUT /api/borrow/approve/:requestID', () => {
-    it('should approve the borrow request if user is Admin', async () => {
+    it('should approve the borrow request if payload is valid and user is Admin', async () => {
+      // Override req.user to be Admin for this test
+      const adminUser = { UserID: 2, Role: 'Admin', Name: 'AdminAlice' };
+      User.findByPk.mockResolvedValue({ Email: 'stud@example.com', Role: 'Student', Name: 'Alice' });
       BorrowRequest.findByPk.mockResolvedValue({
         RequestID: 50,
         Status: 'Pending',
@@ -79,7 +124,6 @@ describe('BorrowController', () => {
         destroy: jest.fn().mockResolvedValue()
       });
       BorrowedItem.findAll.mockResolvedValue([{ Equipment: { Name: 'XYZ' }, Quantity: 2 }]);
-      User.findByPk.mockResolvedValue({ Email: 'stud@example.com', Role: 'Student', Name: 'Alice' });
       
       const res = await request(app)
         .put('/api/borrow/approve/50')
@@ -90,6 +134,18 @@ describe('BorrowController', () => {
         });
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Request approved');
+    });
+
+    it('should return 400 if payload is invalid (e.g., missing returnDate)', async () => {
+      const res = await request(app)
+        .put('/api/borrow/approve/50')
+        .set('Authorization', 'Bearer valid-admin-token')
+        .send({
+          items: [{ borrowedItemID: 1, allow: true }]
+          // Missing returnDate
+        });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/"returnDate" is required/i);
     });
 
     it('should fail if request is not pending', async () => {
@@ -135,7 +191,7 @@ describe('BorrowController', () => {
   });
 
   describe('GET /api/borrow/:requestID/items', () => {
-    it('should return items for a given borrow request', async () => {
+    it('should return items for a given borrow request if valid', async () => {
       BorrowRequest.findByPk.mockResolvedValue({ RequestID: 20, UserID: 2 });
       BorrowedItem.findAll.mockResolvedValue([{ Equipment: { Name: 'XYZ' }, Quantity: 1 }]);
       const res = await request(app)
@@ -145,21 +201,24 @@ describe('BorrowController', () => {
       expect(Array.isArray(res.body.items)).toBe(true);
       expect(res.body.items.length).toBe(1);
     });
+
+    it('should return 400 if requestID is not a valid number', async () => {
+      const res = await request(app)
+        .get('/api/borrow/not-a-number/items')
+        .set('Authorization', 'Bearer valid-token-for-student');
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/"requestID" must be a number/i);
+    });
   });
 
   describe('GET /api/borrow/logs', () => {
     it('should return all logs for admin', async () => {
-      // For logs, no authorization override is required here if your auth middleware passes.
       const fakeLogs = [
         { LogID: 1, Action: 'Create', Details: 'Test log' },
         { LogID: 2, Action: 'Update', Details: 'Another log' }
       ];
-      // We simulate the service call by mocking AuditLog.findAll via BorrowService.getAllLogs.
-      // Here we can directly mock BorrowRequest.findAll in our BorrowService tests,
-      // but since this is a controller test, we assume the service returns the fake logs.
       const BorrowService = require('../../src/services/borrow.service');
       jest.spyOn(BorrowService, 'getAllLogs').mockResolvedValue(fakeLogs);
-
       const res = await request(app)
         .get('/api/borrow/logs')
         .set('Authorization', 'Bearer valid-admin-token');

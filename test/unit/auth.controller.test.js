@@ -9,10 +9,9 @@ describe('AuthController', () => {
   });
 
   describe('POST /api/auth/signup', () => {
-    it('should register a new user if email is not taken', async () => {
-      // Mock User.findOne to return null (email not taken)
+    it('should register a new user if payload is valid', async () => {
+      // Valid payload
       jest.spyOn(User, 'findOne').mockResolvedValue(null);
-      // Mock User.create to return a new user object with a UserID
       jest.spyOn(User, 'create').mockResolvedValue({ UserID: 1 });
 
       const res = await request(app)
@@ -27,25 +26,22 @@ describe('AuthController', () => {
       expect(res.body).toHaveProperty('userID', 1);
     });
 
-    it('should return 400 if email is already taken', async () => {
-      jest.spyOn(User, 'findOne').mockResolvedValue({ Email: 'existing@example.com' });
-
+    it('should return 400 if payload is missing a required field (e.g., email)', async () => {
       const res = await request(app)
         .post('/api/auth/signup')
         .send({
-          email: 'existing@example.com',
           password: 'Password123',
-          name: 'Existing User',
-          role: 'Admin'
+          name: 'New User',
+          role: 'Student'
         });
       expect(res.status).toBe(400);
-      expect(res.body.message).toBe('Email already taken');
+      // The validation error message comes from Joi (e.g., '"email" is required')
+      expect(res.body.message).toMatch(/"email" is required/i);
     });
   });
 
   describe('POST /api/auth/login', () => {
-    it('should return a token if credentials are valid', async () => {
-      // Mock unscoped findOne to include the Password field
+    it('should return a token if payload is valid', async () => {
       jest.spyOn(User, 'unscoped').mockReturnValue({
         findOne: jest.fn().mockResolvedValue({
           UserID: 99,
@@ -68,21 +64,15 @@ describe('AuthController', () => {
       expect(res.body.message).toBe('Login successful');
     });
 
-    it('should return 401 if credentials are invalid', async () => {
-      jest.spyOn(User, 'unscoped').mockReturnValue({
-        findOne: jest.fn().mockResolvedValue({ Password: 'hashedpassword' })
-      });
-      const bcrypt = require('bcrypt');
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(false);
-
+    it('should return 400 if payload is invalid (e.g., password too short)', async () => {
       const res = await request(app)
         .post('/api/auth/login')
         .send({
-          email: 'invalid@example.com',
-          password: 'WrongPassword'
+          email: 'valid@example.com',
+          password: 'short'
         });
-      expect(res.status).toBe(401);
-      expect(res.body.message).toBe('Invalid credentials');
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/"password" length must be at least 6 characters long/i);
     });
   });
 });

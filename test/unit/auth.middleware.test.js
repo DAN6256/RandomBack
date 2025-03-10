@@ -15,7 +15,7 @@ describe('auth.middleware', () => {
     next = jest.fn();
   });
 
-  it('should return 401 if no authorization header is provided', () => {
+  it('should return 401 if no authorization header', () => {
     authenticateUser(req, res, next);
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ message: 'No authorization header provided' });
@@ -39,7 +39,7 @@ describe('auth.middleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('should attach decoded user to req and call next if token is valid', () => {
+  it('should attach decoded user and call next if token is valid', () => {
     req.headers.authorization = 'Bearer goodToken';
     jwt.verify.mockReturnValue({ UserID: 123, Role: 'Admin' });
     authenticateUser(req, res, next);

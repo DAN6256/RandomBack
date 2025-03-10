@@ -4,13 +4,13 @@ const { User } = require('../../src/models');
 const bcrypt = require('bcrypt');
 
 jest.mock('../../src/models', () => {
-  const actual = jest.requireActual('../../src/models');
+  const actualModels = jest.requireActual('../../src/models');
   return {
-    ...actual,
+    ...actualModels,
     User: {
       findOne: jest.fn(),
       create: jest.fn(),
-      unscoped: jest.fn().mockReturnThis(), // Ensures unscoped() works
+      unscoped: jest.fn().mockReturnThis(),
       findByPk: jest.fn()
     }
   };
@@ -22,7 +22,7 @@ describe('AuthService', () => {
   });
 
   describe('signUpUser', () => {
-    it('should throw an error if email is already taken', async () => {
+    it('should throw error if email is already taken', async () => {
       User.findOne.mockResolvedValue({ Email: 'test@example.com' });
       await expect(AuthService.signUpUser({
         email: 'test@example.com',
@@ -33,7 +33,7 @@ describe('AuthService', () => {
       expect(User.findOne).toHaveBeenCalledWith({ where: { Email: 'test@example.com' } });
     });
 
-    it('should create a new user if email is not taken', async () => {
+    it('should create new user if email not taken', async () => {
       User.findOne.mockResolvedValue(null);
       User.create.mockResolvedValue({ UserID: 5 });
       const newUser = await AuthService.signUpUser({
@@ -48,7 +48,7 @@ describe('AuthService', () => {
   });
 
   describe('loginUser', () => {
-    it('should throw an error if user not found', async () => {
+    it('should throw error if user not found', async () => {
       User.unscoped().findOne.mockResolvedValue(null);
       await expect(AuthService.loginUser({
         email: 'missing@example.com',
@@ -56,7 +56,7 @@ describe('AuthService', () => {
       })).rejects.toThrow('Invalid credentials');
     });
 
-    it('should throw an error if password does not match', async () => {
+    it('should throw error if password does not match', async () => {
       User.unscoped().findOne.mockResolvedValue({ Password: 'somehash' });
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(false);
       await expect(AuthService.loginUser({
@@ -65,7 +65,7 @@ describe('AuthService', () => {
       })).rejects.toThrow('Invalid credentials');
     });
 
-    it('should return a token if credentials are valid', async () => {
+    it('should return token if credentials are valid', async () => {
       User.unscoped().findOne.mockResolvedValue({
         UserID: 10,
         Email: 'valid@example.com',

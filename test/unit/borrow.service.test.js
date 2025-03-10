@@ -2,6 +2,13 @@
 const BorrowService = require('../../src/services/borrow.service');
 const { BorrowRequest, BorrowedItem, Equipment, User, AuditLog } = require('../../src/models');
 
+// Mock nodemailer for email functions called inside BorrowService
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn().mockReturnValue({
+    sendMail: jest.fn().mockResolvedValue({})
+  })
+}));
+
 jest.mock('../../src/models', () => {
   const actual = jest.requireActual('../../src/models');
   return {
@@ -26,7 +33,8 @@ jest.mock('../../src/models', () => {
       findByPk: jest.fn()
     },
     AuditLog: {
-      create: jest.fn()
+      create: jest.fn(),
+      findAll: jest.fn()
     }
   };
 });
@@ -37,7 +45,7 @@ describe('BorrowService', () => {
   });
 
   describe('requestEquipment', () => {
-    it('should throw if user is not a Student', async () => {
+    it('should throw if user is not Student', async () => {
       User.findByPk.mockResolvedValue({ Role: 'Admin' });
       await expect(BorrowService.requestEquipment(1, [], new Date()))
         .rejects.toThrow('Invalid student or role');
@@ -92,7 +100,7 @@ describe('BorrowService', () => {
   });
 
   describe('returnEquipment', () => {
-    it('should throw if request is not approved', async () => {
+    it('should throw if request not approved', async () => {
       BorrowRequest.findByPk.mockResolvedValue({ Status: 'Pending' });
       await expect(BorrowService.returnEquipment(10))
         .rejects.toThrow('Invalid request or not in approved state');
@@ -104,7 +112,10 @@ describe('BorrowService', () => {
         Status: 'Approved',
         save: jest.fn().mockResolvedValue()
       });
-      User.findByPk.mockResolvedValue({ Name: 'Alice' });
+      // Ensure unscoped works for User
+      User.unscoped.mockReturnValue({
+        findByPk: jest.fn().mockResolvedValue({ Name: 'Alice', Role: 'Student' })
+      });
       const result = await BorrowService.returnEquipment(11);
       expect(result.Status).toBe('Returned');
       expect(AuditLog.create).toHaveBeenCalledWith(
