@@ -65,12 +65,6 @@ describe('BorrowService', () => {
         Status: 'Pending',
         save: jest.fn().mockResolvedValue(true)
       });
-      // BorrowedItem.findOne = jest.fn(); // or findByPk
-      // BorrowedItem.findOne.mockResolvedValue({ 
-      //   RequestID: 2,
-      //   save: jest.fn().mockResolvedValue(true)
-      // });
-
       BorrowedItem.findByPk.mockResolvedValue({
         RequestID: 2,
         Description: null,
