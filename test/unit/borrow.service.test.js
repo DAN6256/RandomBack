@@ -27,6 +27,10 @@ describe('BorrowService', () => {
       BorrowedItem.create.mockResolvedValue({});
       AuditLog.create.mockResolvedValue({});
 
+      BorrowedItem.findAll.mockResolvedValue([
+        { EquipmentID: 10, Quantity: 2, Description: 'TestDesc', Equipment: { Name: 'ItemX' } }
+      ]);
+
       const result = await BorrowService.requestEquipment(1, [
         { equipmentID: 10, quantity: 2 }
       ], null);
@@ -60,8 +64,10 @@ describe('BorrowService', () => {
       BorrowedItem.findAll.mockResolvedValue([{ RequestID: 2 }]);
       AuditLog.create.mockResolvedValue({});
 
-      const result = await BorrowService.approveRequest(2, new Date(), null, null, 10);
-      expect(result.Status).toBe('Approved');
+      const result = await BorrowService.approveRequest(2, new Date(), [{ 
+        borrowedItemID: 10, 
+        allow: true 
+      }]);      expect(result.Status).toBe('Approved');
       expect(AuditLog.create).toHaveBeenCalled();
     });
 

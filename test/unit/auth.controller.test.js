@@ -73,7 +73,8 @@ describe('AuthController', () => {
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         message: 'Login successful',
-        token: 'my-jwt'
+        token: 'my-jwt',
+        user: { Email: 'valid@x.com', Password: undefined } 
       });
     });
 

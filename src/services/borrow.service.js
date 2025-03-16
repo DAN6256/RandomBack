@@ -142,7 +142,7 @@ const BorrowService = {
   returnEquipment: async (requestID) => {
     const request = await BorrowRequest.findByPk(requestID);
     if (!request || request.Status !== 'Approved') {
-      throw new Error('Invalid request or not in approved state');
+      throw new Error('Invalid return request');
     }
 
     request.Status = 'Returned';
