@@ -4,6 +4,13 @@
 const BorrowService = require('../../src/services/borrow.service');
 const { User, Equipment, BorrowRequest, BorrowedItem, AuditLog, Reminder } = require('../../src/models');
 
+
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn().mockReturnValue({
+    sendMail: jest.fn().mockResolvedValue({})
+  })
+}));
+
 jest.mock('../../src/models', () => ({
   User: { findByPk: jest.fn(), findOne: jest.fn() },
   Equipment: { findByPk: jest.fn() },
@@ -12,6 +19,8 @@ jest.mock('../../src/models', () => ({
   AuditLog: { create: jest.fn() },
   Reminder: { create: jest.fn() }
 }));
+
+
 
 describe('BorrowService', () => {
   afterEach(() => {
@@ -56,18 +65,26 @@ describe('BorrowService', () => {
         Status: 'Pending',
         save: jest.fn().mockResolvedValue(true)
       });
-      BorrowedItem.findOne = jest.fn(); // or findByPk
-      BorrowedItem.findOne.mockResolvedValue({ 
+      // BorrowedItem.findOne = jest.fn(); // or findByPk
+      // BorrowedItem.findOne.mockResolvedValue({ 
+      //   RequestID: 2,
+      //   save: jest.fn().mockResolvedValue(true)
+      // });
+
+      BorrowedItem.findByPk.mockResolvedValue({
         RequestID: 2,
+        Description: null,
+        SerialNumber: null,
         save: jest.fn().mockResolvedValue(true)
       });
+
       BorrowedItem.findAll.mockResolvedValue([{ RequestID: 2 }]);
       AuditLog.create.mockResolvedValue({});
 
-      const result = await BorrowService.approveRequest(2, new Date(), [{ 
-        borrowedItemID: 10, 
-        allow: true 
-      }]);      expect(result.Status).toBe('Approved');
+      const items = [{ borrowedItemID: 10, allow: true }];
+
+      const result = await BorrowService.approveRequest(2, new Date(), items);      
+      expect(result.Status).toBe('Approved');
       expect(AuditLog.create).toHaveBeenCalled();
     });
 
@@ -86,6 +103,14 @@ describe('BorrowService', () => {
         Status: 'Approved',
         save: jest.fn().mockResolvedValue(true)
       });
+
+      User.unscoped = jest.fn().mockReturnThis();
+      User.findByPk.mockResolvedValue({ 
+        Role: 'Student', 
+        Name: 'Dave', 
+        Email: 'student@x.com'
+      });
+
       AuditLog.create.mockResolvedValue({});
 
       const result = await BorrowService.returnEquipment(5);
