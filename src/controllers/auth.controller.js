@@ -30,8 +30,8 @@ const AuthController = {
 
       return res.status(200).json({
         message: 'Login successful',
-        token
-        // We do NOT return the password. Possibly we can return user info if needed.
+        token,
+        user
       });
     } catch (error) {
       return res.status(401).json({ message: error.message });
