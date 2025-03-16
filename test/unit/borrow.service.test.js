@@ -75,7 +75,7 @@ describe('BorrowService', () => {
       BorrowRequest.findByPk.mockResolvedValue(null);
 
       await expect(BorrowService.approveRequest(999, new Date(), null, null, 10))
-        .rejects.toThrow('Invalid request');
+        .rejects.toThrow('Request not found or already processed');
     });
   });
 
