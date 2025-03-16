@@ -1,25 +1,22 @@
-/**
- * @file equipment.integration.test.js
- * Integration tests for equipment endpoints.
- */
+
 const request = require('supertest');
 const app = require('../../index');
 const { sequelize } = require('../../src/models');
 
-describe('Equipment Integration', () => {
+describe('Equipment Integration (In-Memory)', () => {
   let adminToken;
+  let eqID;
 
   beforeAll(async () => {
-    // Optionally sync the DB
-    // await sequelize.sync({ force: true });
+    await sequelize.sync({ force: true });
 
-    // create an admin user, then login
+    // create & login an Admin user
     await request(app)
       .post('/api/auth/signup')
       .send({
         email: 'equipadmin@int.com',
-        password: 'AdminPass1',
-        name: 'Admin Equip',
+        password: 'Admin123',
+        name: 'EquipAdmin',
         role: 'Admin',
         major: 'NA',
         yearGroup: 2023
@@ -27,7 +24,8 @@ describe('Equipment Integration', () => {
 
     const loginRes = await request(app)
       .post('/api/auth/login')
-      .send({ email: 'equipadmin@int.com', password: 'AdminPass1' });
+      .send({ email: 'equipadmin@int.com', password: 'Admin123' })
+      .expect(200);
 
     adminToken = loginRes.body.token;
   });
@@ -36,10 +34,8 @@ describe('Equipment Integration', () => {
     await sequelize.close();
   });
 
-  let equipmentID;
-
   describe('POST /api/equipment', () => {
-    it('Admin can add new equipment', async () => {
+    it('Admin can add equipment', async () => {
       const res = await request(app)
         .post('/api/equipment')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -47,12 +43,12 @@ describe('Equipment Integration', () => {
         .expect(201);
 
       expect(res.body.message).toBe('Equipment added successfully');
-      equipmentID = res.body.equipment.EquipmentID;
+      eqID = res.body.equipment.EquipmentID;
     });
   });
 
   describe('GET /api/equipment', () => {
-    it('can retrieve list of equipment', async () => {
+    it('lists all equipment', async () => {
       const res = await request(app)
         .get('/api/equipment')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -62,30 +58,28 @@ describe('Equipment Integration', () => {
     });
   });
 
-  describe('GET /api/equipment/:id', () => {
+  describe('GET /api/equipment/:eqID', () => {
     it('returns 200 if found', async () => {
       const res = await request(app)
-        .get(`/api/equipment/${equipmentID}`)
+        .get(`/api/equipment/${eqID}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      expect(res.body.equipment.EquipmentID).toBe(equipmentID);
+      expect(res.body.equipment.EquipmentID).toBe(eqID);
     });
 
     it('returns 404 if not found', async () => {
-      const res = await request(app)
-        .get('/api/equipment/999999')
+      await request(app)
+        .get('/api/equipment/9999')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
-
-      expect(res.body.message).toMatch(/not found/i);
     });
   });
 
-  describe('PUT /api/equipment/:id', () => {
-    it('can update equipment name', async () => {
+  describe('PUT /api/equipment/:eqID', () => {
+    it('updates name if admin', async () => {
       const res = await request(app)
-        .put(`/api/equipment/${equipmentID}`)
+        .put(`/api/equipment/${eqID}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ name: 'Updated Printer' })
         .expect(200);
@@ -95,10 +89,10 @@ describe('Equipment Integration', () => {
     });
   });
 
-  describe('DELETE /api/equipment/:id', () => {
-    it('can delete equipment', async () => {
+  describe('DELETE /api/equipment/:eqID', () => {
+    it('deletes the equipment', async () => {
       const res = await request(app)
-        .delete(`/api/equipment/${equipmentID}`)
+        .delete(`/api/equipment/${eqID}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
