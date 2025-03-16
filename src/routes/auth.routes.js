@@ -7,7 +7,7 @@ require('dotenv').config();
 
 const authMiddleware = require('../middlewares/auth.middleware');
 const validate = require('../validations/validate');
-const { signupSchema, loginSchema } = require('../validations/authValidations');
+const { signupSchema, loginSchema, editUserSchema } = require('../validations/authValidations');
 
 
 const AuthController = require('../controllers/auth.controller');
