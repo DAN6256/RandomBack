@@ -26,7 +26,9 @@ const AuthService = {
       Name: name,
       Email: email,
       Role: role,
-      Password: hashedPassword
+      Password: hashedPassword,
+      major,     
+      yearGroup 
     });
 
     return newUser; // The controller can shape the response
@@ -60,6 +62,23 @@ const AuthService = {
     );
 
     return { token, user };
+  },
+
+  editUserDetails: async (userID, { name, major, yearGroup }) => {
+    // find user by ID
+    const user = await User.unscoped().findByPk(userID);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Update only the fields provided
+    if (name !== undefined) user.Name = name;
+    if (major !== undefined) user.major = major;
+    if (yearGroup !== undefined) user.yearGroup = yearGroup;
+
+    await user.save();
+
+    return user; // Return the updated user (password excluded by default scope)
   }
 };
 

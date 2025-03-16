@@ -29,6 +29,8 @@ const AuthController = require('../controllers/auth.controller');
  *               - password
  *               - name
  *               - role
+ *               - major  
+ *               - yearGroup
  *             properties:
  *               email:
  *                 type: string
@@ -110,6 +112,77 @@ router.post(
   '/login',
   validate(loginSchema),
   AuthController.login
+);
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: User logout
+ *     description: Logs out the current user (simply instructs the client to discard the token).
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Logged out successfully"
+ */
+router.post('/logout', authMiddleware, AuthController.logout);
+
+/**
+ * @swagger
+ * /api/auth/edit:
+ *   put:
+ *     summary: Edit user details
+ *     description: Allows logged-in users to change their name, major, or year group.
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "New Name"
+ *               major:
+ *                 type: string
+ *                 example: "Computer Science"
+ *               yearGroup:
+ *                 type: integer
+ *                 example: 2025
+ *     responses:
+ *       200:
+ *         description: User details updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User details updated successfully"
+ *                 user:
+ *                   type: object
+ *       400:
+ *         description: Error updating user
+ */
+router.put(
+  '/edit',
+  authMiddleware,              // must be logged in
+  validate(editUserSchema),    // must pass name/major/yearGroup
+  AuthController.editUser
 );
 
 module.exports = router;

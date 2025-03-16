@@ -31,6 +31,14 @@ const User = sequelize.define('User', {
   Password: {
     type: DataTypes.STRING,
     allowNull: false
+  },
+  major: { 
+    type: DataTypes.STRING,
+    allowNull: true // or false if you want it mandatory
+  },
+  yearGroup: {
+    type: DataTypes.INTEGER,
+    allowNull: true // or false if you want it mandatory
   }
 }, {
   timestamps: false,
