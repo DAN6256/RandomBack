@@ -49,6 +49,7 @@ const AuthService = {
     if (!match) {
       throw new Error('Invalid credentials');
     }
+    
 
     // Generate token
     const token = jwt.sign(
@@ -60,6 +61,8 @@ const AuthService = {
       process.env.JWT_SECRET,
       { expiresIn: '60m' } // or '1h'
     );
+
+    user.Password = undefined;
 
     return { token, user };
   },
