@@ -20,8 +20,8 @@ describe('BorrowService', () => {
 
   describe('requestEquipment', () => {
     it('should create BorrowRequest and items, then log audit', async () => {
-      User.findByPk.mockResolvedValue({ Role: 'Student' });
-      User.findOne.mockResolvedValue({ Role: 'Admin' });
+      User.findByPk.mockResolvedValue({ Role: 'Student', Email: 'student@x.com' });  // FIX: add Email
+      User.findOne.mockResolvedValue({ Role: 'Admin', Email: 'admin@x.com' }); 
       BorrowRequest.create.mockResolvedValue({ RequestID: 1 });
       Equipment.findByPk.mockResolvedValue({ EquipmentID: 10 });
       BorrowedItem.create.mockResolvedValue({});

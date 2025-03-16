@@ -149,7 +149,7 @@ const BorrowService = {
     await request.save();
 
     // Audit log
-    const returningUser = await User.unscoped().findByPk(request.UserID);
+    const returningUser = await User.findByPk(request.UserID);
     const userLabel = returningUser && returningUser.Role === 'Admin' ? 'the admin' : (returningUser ? returningUser.Name : 'Unknown user');
 
     await AuditLog.create({
