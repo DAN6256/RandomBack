@@ -1,20 +1,26 @@
-// FILE: test/unit/auth.service.test.js
+/**
+ * @file auth.service.test.js
+ * Unit tests for AuthService, excluding forgot/reset password methods as requested.
+ */
 const AuthService = require('../../src/services/auth.service');
 const { User } = require('../../src/models');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcrypt'); // We'll mock compare, hash if needed
 
 jest.mock('../../src/models', () => {
-  const actualModels = jest.requireActual('../../src/models');
   return {
-    ...actualModels,
     User: {
-      findOne: jest.fn(),
-      create: jest.fn(),
       unscoped: jest.fn().mockReturnThis(),
-      findByPk: jest.fn()
+      findOne: jest.fn(),
+      findByPk: jest.fn(),
+      create: jest.fn()
     }
   };
 });
+
+jest.mock('bcrypt', () => ({
+  hash: jest.fn(),
+  compare: jest.fn()
+}));
 
 describe('AuthService', () => {
   afterEach(() => {
@@ -22,63 +28,108 @@ describe('AuthService', () => {
   });
 
   describe('signUpUser', () => {
-    it('should throw error if email is already taken', async () => {
-      User.findOne.mockResolvedValue({ Email: 'test@example.com' });
-      await expect(AuthService.signUpUser({
-        email: 'test@example.com',
-        password: 'Secret123',
+    it('should create a new user if email is not taken', async () => {
+      User.findOne.mockResolvedValue(null); // no user with that email
+      User.create.mockResolvedValue({ UserID: 123, Email: 'test@x.com' });
+      bcrypt.hash.mockResolvedValue('hashedPassword');
+
+      const newUser = await AuthService.signUpUser({
+        email: 'test@x.com',
+        password: 'password',
         name: 'Tester',
-        role: 'Student'
-      })).rejects.toThrow('Email already taken');
-      expect(User.findOne).toHaveBeenCalledWith({ where: { Email: 'test@example.com' } });
+        role: 'Student',
+        major: 'CS',
+        yearGroup: 2025
+      });
+
+      expect(User.findOne).toHaveBeenCalledWith({ where: { Email: 'test@x.com' } });
+      expect(bcrypt.hash).toHaveBeenCalledWith('password', 10);
+      expect(User.create).toHaveBeenCalled();
+      expect(newUser.UserID).toBe(123);
     });
 
-    it('should create new user if email not taken', async () => {
-      User.findOne.mockResolvedValue(null);
-      User.create.mockResolvedValue({ UserID: 5 });
-      const newUser = await AuthService.signUpUser({
-        email: 'new@example.com',
-        password: 'Secret123',
-        name: 'NewUser',
-        role: 'Admin'
-      });
-      expect(newUser.UserID).toBe(5);
-      expect(User.create).toHaveBeenCalled();
+    it('should throw error if email already taken', async () => {
+      User.findOne.mockResolvedValue({ Email: 'test@x.com' });
+
+      await expect(AuthService.signUpUser({
+        email: 'test@x.com',
+        password: 'password',
+        name: 'Tester',
+        role: 'Student',
+        major: 'CS',
+        yearGroup: 2025
+      })).rejects.toThrow('Email already taken');
     });
   });
 
   describe('loginUser', () => {
     it('should throw error if user not found', async () => {
       User.unscoped().findOne.mockResolvedValue(null);
+
       await expect(AuthService.loginUser({
-        email: 'missing@example.com',
-        password: 'Secret123'
+        email: 'none@x.com',
+        password: 'secret'
       })).rejects.toThrow('Invalid credentials');
     });
 
-    it('should throw error if password does not match', async () => {
-      User.unscoped().findOne.mockResolvedValue({ Password: 'somehash' });
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(false);
+    it('should throw error if password mismatch', async () => {
+      User.unscoped().findOne.mockResolvedValue({ Email: 'valid@x.com', Password: 'hashed' });
+      bcrypt.compare.mockResolvedValue(false);
+
       await expect(AuthService.loginUser({
-        email: 'test@example.com',
+        email: 'valid@x.com',
         password: 'wrong'
       })).rejects.toThrow('Invalid credentials');
     });
 
-    it('should return token if credentials are valid', async () => {
+    it('should return token and user if login success', async () => {
       User.unscoped().findOne.mockResolvedValue({
-        UserID: 10,
-        Email: 'valid@example.com',
-        Password: 'hashedstuff',
+        UserID: 10, 
+        Email: 'valid@x.com', 
+        Password: 'hashed', 
         Role: 'Student'
       });
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      bcrypt.compare.mockResolvedValue(true);
+
       const { token, user } = await AuthService.loginUser({
-        email: 'valid@example.com',
-        password: 'Secret123'
+        email: 'valid@x.com',
+        password: 'secret'
       });
+
       expect(token).toBeDefined();
-      expect(user.UserID).toBe(10);
+      expect(user.Email).toBe('valid@x.com');
+      expect(user.Password).toBeUndefined();
     });
   });
+
+  describe('editUserDetails', () => {
+    it('should update user fields if user exists', async () => {
+      User.unscoped().findByPk.mockResolvedValue({
+        UserID: 20,
+        Name: 'Old Name',
+        major: 'OldMajor',
+        yearGroup: 2020,
+        save: jest.fn().mockResolvedValue(true)
+      });
+
+      const updated = await AuthService.editUserDetails(20, {
+        name: 'New Name',
+        major: 'NewMajor',
+        yearGroup: 2025
+      });
+
+      expect(updated.Name).toBe('New Name');
+      expect(updated.major).toBe('NewMajor');
+      expect(updated.yearGroup).toBe(2025);
+    });
+
+    it('should throw error if user not found', async () => {
+      User.unscoped().findByPk.mockResolvedValue(null);
+
+      await expect(AuthService.editUserDetails(99, {
+        name: 'Any', major: 'CS', yearGroup: 2025
+      })).rejects.toThrow('User not found');
+    });
+  });
+
 });

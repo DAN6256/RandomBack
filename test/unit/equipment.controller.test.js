@@ -1,104 +1,142 @@
-// FILE: test/unit/equipment.controller.test.js
-const request = require('supertest');
-const app = require('../../index');
-const { Equipment } = require('../../src/models');
+/**
+ * @file equipment.controller.test.js
+ */
+const EquipmentController = require('../../src/controllers/equipment.controller');
+const EquipmentService = require('../../src/services/equipment.service');
 
-jest.mock('../../src/models', () => {
-  const actual = jest.requireActual('../../src/models');
-  return {
-    ...actual,
-    Equipment: {
-      create: jest.fn(),
-      findByPk: jest.fn(),
-      destroy: jest.fn(),
-      findAll: jest.fn()
-    }
-  };
-});
+jest.mock('../../src/services/equipment.service');
 
 describe('EquipmentController', () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('POST /api/equipment', () => {
-    it('should add new equipment if payload is valid and user is Admin', async () => {
-      Equipment.create.mockResolvedValue({ EquipmentID: 100, Name: 'New Equip' });
-      const res = await request(app)
-        .post('/api/equipment')
-        .set('Authorization', 'Bearer valid-admin-token')
-        .send({ name: 'New Equip' });
-      expect(res.status).toBe(201);
-      expect(res.body.equipment.Name).toBe('New Equip');
+  describe('addEquipment', () => {
+    it('should respond 201 on success', async () => {
+      EquipmentService.addEquipment.mockResolvedValue({ EquipmentID: 10, Name: '3D Printer' });
+
+      const req = {
+        body: { name: '3D Printer' },
+        user: { UserID: 1 }
+      };
+      const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+
+      await EquipmentController.addEquipment(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'Equipment added successfully',
+        equipment: { EquipmentID: 10, Name: '3D Printer' }
+      });
     });
 
-    it('should return 400 if payload is invalid (missing name)', async () => {
-      const res = await request(app)
-        .post('/api/equipment')
-        .set('Authorization', 'Bearer valid-admin-token')
-        .send({});
-      expect(res.status).toBe(400);
-      expect(res.body.message).toMatch(/"name" is required/i);
-    });
-  });
+    it('should respond 400 if error', async () => {
+      EquipmentService.addEquipment.mockRejectedValue(new Error('error'));
 
-  describe('PUT /api/equipment/:equipmentID', () => {
-    it('should update equipment details if payload is valid and user is Admin', async () => {
-      const fakeEquip = { EquipmentID: 10, Name: 'OldName', save: jest.fn().mockResolvedValue({ EquipmentID: 10, Name: 'UpdatedName' }) };
-      Equipment.findByPk.mockResolvedValue(fakeEquip);
-      const res = await request(app)
-        .put('/api/equipment/10')
-        .set('Authorization', 'Bearer valid-admin-token')
-        .send({ name: 'UpdatedName' });
-      expect(res.status).toBe(200);
-      expect(res.body.updatedEquipment.Name).toBe('UpdatedName');
+      const req = { body: {}, user: { UserID: 1 } };
+      const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+
+      await EquipmentController.addEquipment(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ message: 'error' });
     });
   });
 
-  describe('DELETE /api/equipment/:equipmentID', () => {
-    it('should delete equipment if user is Admin', async () => {
-      Equipment.findByPk.mockResolvedValue({ EquipmentID: 20 });
-      Equipment.destroy.mockResolvedValue(1);
-      const res = await request(app)
-        .delete('/api/equipment/20')
-        .set('Authorization', 'Bearer valid-admin-token');
-      expect(res.status).toBe(200);
-      expect(res.body.message).toBe('Equipment deleted');
+  describe('updateEquipment', () => {
+    it('should respond 200 on success', async () => {
+      EquipmentService.updateEquipment.mockResolvedValue({
+        EquipmentID: 20, Name: 'Updated Printer'
+      });
+
+      const req = {
+        params: { equipmentID: 20 },
+        body: { name: 'Updated Printer' },
+        user: { UserID: 2 }
+      };
+      const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+
+      await EquipmentController.updateEquipment(req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'Equipment updated successfully',
+        updatedEquipment: { EquipmentID: 20, Name: 'Updated Printer' }
+      });
+    });
+
+    it('should respond 400 if error thrown', async () => {
+      EquipmentService.updateEquipment.mockRejectedValue(new Error('Not found'));
+      const req = { params: { equipmentID: 99 }, body: {}, user: { UserID: 2 } };
+      const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+
+      await EquipmentController.updateEquipment(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Not found' });
     });
   });
 
-  describe('GET /api/equipment', () => {
-    it('should return all equipment', async () => {
-      Equipment.findAll.mockResolvedValue([
-        { EquipmentID: 1, Name: 'Printer' },
-        { EquipmentID: 2, Name: 'Laser Cutter' }
-      ]);
-      const res = await request(app)
-        .get('/api/equipment')
-        .set('Authorization', 'Bearer valid-token');
-      expect(res.status).toBe(200);
-      expect(Array.isArray(res.body.equipmentList)).toBe(true);
-      expect(res.body.equipmentList.length).toBe(2);
+  describe('deleteEquipment', () => {
+    it('should respond 200 if deleted', async () => {
+      EquipmentService.deleteEquipment.mockResolvedValue({ message: 'Equipment deleted' });
+
+      const req = { params: { equipmentID: 30 }, user: { UserID: 2 } };
+      const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+
+      await EquipmentController.deleteEquipment(req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Equipment deleted successfully' });
+    });
+
+    it('should respond 400 if error', async () => {
+      EquipmentService.deleteEquipment.mockRejectedValue(new Error('error'));
+      const req = { params: { equipmentID: 999 }, user: { UserID: 2 } };
+      const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+
+      await EquipmentController.deleteEquipment(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ message: 'error' });
     });
   });
 
-  describe('GET /api/equipment/:equipmentID', () => {
-    it('should return equipment details if found', async () => {
-      Equipment.findByPk.mockResolvedValue({ EquipmentID: 11, Name: '3D Printer' });
-      const res = await request(app)
-        .get('/api/equipment/11')
-        .set('Authorization', 'Bearer valid-token');
-      expect(res.status).toBe(200);
-      expect(res.body.equipment.Name).toBe('3D Printer');
+  describe('getAllEquipment', () => {
+    it('should respond 200 with list', async () => {
+      EquipmentService.getAllEquipment.mockResolvedValue([{ EquipmentID: 1 }]);
+      const req = {}, res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+
+      await EquipmentController.getAllEquipment(req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ equipmentList: [{ EquipmentID: 1 }] });
     });
 
-    it('should return 404 if equipment not found', async () => {
-      Equipment.findByPk.mockResolvedValue(null);
-      const res = await request(app)
-        .get('/api/equipment/999')
-        .set('Authorization', 'Bearer valid-token');
-      expect(res.status).toBe(404);
-      expect(res.body.message).toBe('Equipment not found');
+    it('should respond 400 if error', async () => {
+      EquipmentService.getAllEquipment.mockRejectedValue(new Error('error'));
+      const req = {}, res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+
+      await EquipmentController.getAllEquipment(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ message: 'error' });
+    });
+  });
+
+  describe('getEquipmentById', () => {
+    it('should respond 200 if found', async () => {
+      EquipmentService.getEquipmentById.mockResolvedValue({ EquipmentID: 5, Name: 'Scanner' });
+      const req = { params: { equipmentID: 5 } };
+      const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+
+      await EquipmentController.getEquipmentById(req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ equipment: { EquipmentID: 5, Name: 'Scanner' } });
+    });
+
+    it('should respond 404 if not found', async () => {
+      EquipmentService.getEquipmentById.mockRejectedValue(new Error('Equipment not found'));
+      const req = { params: { equipmentID: 999 } };
+      const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+
+      await EquipmentController.getEquipmentById(req, res);
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Equipment not found' });
     });
   });
 });
