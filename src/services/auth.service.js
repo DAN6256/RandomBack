@@ -10,7 +10,7 @@ const AuthService = {
    * Create a new user (Student or Admin).
    * Throws an error if email already in use.
    */
-  signUpUser: async ({ email, password, name, role }) => {
+  signUpUser: async ({ email, password, name, role, major, yearGroup }) => {
     // Check if user already exists
     const existing = await User.findOne({ where: { Email: email } });
     if (existing) {
