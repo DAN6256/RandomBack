@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 require('dotenv').config();
 
+const authMiddleware = require('../middlewares/auth.middleware');
 const validate = require('../validations/validate');
 const { signupSchema, loginSchema } = require('../validations/authValidations');
 
