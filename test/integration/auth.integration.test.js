@@ -1,17 +1,15 @@
 
 
 const request = require('supertest');
-const app = require('../../index');    // your Express app
-const { sequelize } = require('../../src/models'); // the Sequelize instance
+const app = require('../../index');    
+const { sequelize } = require('../../src/models'); 
 
 describe('Auth Integration (In-Memory)', () => {
   beforeAll(async () => {
-    // Force-sync all tables in an in-memory DB
     await sequelize.sync({ force: true });
   });
 
   afterAll(async () => {
-    // Close DB connection
     await sequelize.close();
   });
 

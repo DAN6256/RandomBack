@@ -1,25 +1,22 @@
 
 const request = require('supertest');
-const app = require('../../index'); // your Express app
-const { sequelize } = require('../../src/models'); // in-memory db if NODE_ENV=test
+const app = require('../../index'); 
+const { sequelize } = require('../../src/models'); 
 
-// Increase default test timeout to help avoid "Exceeded timeout" errors
 jest.setTimeout(15000);
 
 describe('Borrow Integration (In-Memory)', () => {
   let studentToken;
   let adminToken;
-  let requestID;     // We’ll store the new BorrowRequest ID
-  let equipmentID;   // We'll store the newly created equipment ID
-  let borrowedItemID;// If your code returns the item ID, we can store it here
-
+  let requestID;     
+  let equipmentID;
+  let borrowedItemID;
   beforeAll(async () => {
-    // Force sync the DB so we have a fresh, empty schema in SQLite memory
     await sequelize.sync({ force: true });
 
     console.log('Database synced for Borrow Integration tests...');
 
-    // 1) Create Student
+
     console.log('Creating Student user...');
     await request(app)
       .post('/api/auth/signup')
@@ -33,7 +30,6 @@ describe('Borrow Integration (In-Memory)', () => {
       })
       .expect(201);
 
-    // 2) Create Admin
     console.log('Creating Admin user...');
     await request(app)
       .post('/api/auth/signup')
@@ -47,7 +43,7 @@ describe('Borrow Integration (In-Memory)', () => {
       })
       .expect(201);
 
-    // 3) Student login
+ 
     console.log('Logging in Student...');
     const stRes = await request(app)
       .post('/api/auth/login')
@@ -56,7 +52,7 @@ describe('Borrow Integration (In-Memory)', () => {
 
     studentToken = stRes.body.token;
 
-    // 4) Admin login
+
     console.log('Logging in Admin...');
     const adRes = await request(app)
       .post('/api/auth/login')
@@ -65,7 +61,7 @@ describe('Borrow Integration (In-Memory)', () => {
 
     adminToken = adRes.body.token;
 
-    // 5) Admin creates an equipment item so Student can borrow
+
     console.log('Admin creating equipment...');
     const eqRes = await request(app)
       .post('/api/equipment')
@@ -78,7 +74,6 @@ describe('Borrow Integration (In-Memory)', () => {
   });
 
   afterAll(async () => {
-    // close DB
     await sequelize.close();
     console.log('Closed DB connection. Borrow Integration tests done.');
   });

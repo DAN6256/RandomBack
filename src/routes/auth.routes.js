@@ -46,6 +46,13 @@ const AuthController = require('../controllers/auth.controller');
  *                 type: string
  *                 enum: [Student, Admin]
  *                 example: "Student"
+ *              major:
+ *                type: string
+ *                example: "Computer Engineering"
+ *              yearGroup: 
+ *                type: number
+ *                example: 2025
+ *    
  *     responses:
  *       201:
  *         description: User registered successfully
