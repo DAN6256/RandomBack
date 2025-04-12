@@ -65,7 +65,7 @@ if (process.env.NODE_ENV === 'test') {
   });
 } else {
   // Use the single DATABASE_URL environment variable in production or development
-  sequelize = new Sequelize(process.env.DATABASE_URL, {
+  sequelize = new Sequelize(process.env.DB_URL, {
     dialect: 'postgres',
     logging: false,
     pool: {
