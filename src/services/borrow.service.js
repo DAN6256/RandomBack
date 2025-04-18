@@ -171,8 +171,8 @@ const BorrowService = {
 
   sendReminderForDueReturns: async () => {
     const twoDaysFromNow = new Date();
-twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
-twoDaysFromNow.setHours(0, 0, 0, 0); // Set time to midnight for consistency
+    twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
+    twoDaysFromNow.setHours(0, 0, 0, 0); // Set time to midnight for consistency
 
 const dueRequests = await BorrowRequest.findAll({
   where: {
@@ -218,7 +218,7 @@ const dueRequests = await BorrowRequest.findAll({
       }
     }
 
-    return remindersSent;
+    return {remindersSent,twoDaysFromNow};
   },
 
   getAllRequests: async (user) => {
