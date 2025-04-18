@@ -40,7 +40,7 @@ const BorrowController = {
     try {
       const count = await BorrowService.sendReminderForDueReturns();
       if (count === 0) {
-        return res.status(200).json({ message: 'No due requests found to remind' });
+        return res.status(200).json({ message: count });
       }
       res.status(200).json({ message: 'Reminders sent successfully' });
     } catch (error) {
