@@ -1,5 +1,6 @@
 const { BorrowRequest, BorrowedItem, Equipment, User, Reminder, AuditLog } = require('../models');
 const EmailService = require('./email.service');
+const { Op } = require('sequelize');
 
 const BorrowService = {
   requestEquipment: async (userID, items, collectionDateTime) => {
