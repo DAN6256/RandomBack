@@ -14,7 +14,6 @@ const BorrowService = {
       throw new Error('No admin found');
     }
 
-    // Create a new BorrowRequest record
     const borrowRequest = await BorrowRequest.create({
       UserID: userID,
       BorrowDate: new Date(),
@@ -168,63 +167,21 @@ const BorrowService = {
 
     return request;
   },
-/*
-  sendReminderForDueReturns: async () => {
-   
-    const twoDaysFromNow = new Date();
-    twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
-
-    const dueRequests = await BorrowRequest.findAll({
-      where: {
-        Status: 'Approved',
-        ReturnDate: twoDaysFromNow
-      }
-    });
-
-    let remindersSent = 0;
-
-    for (const request of dueRequests) {
-      const student = await User.findByPk(request.UserID);
-      if (student) {
-        await EmailService.sendReminder(student.Name, student.Email, request.RequestID, request.ReturnDate);
-        await Reminder.create({
-          RequestID: request.RequestID,
-          ReminderDate: new Date(),
-          Sent: true
-        });
-
-        const userLabel = student.Role === 'Admin' ? 'the admin' : student.Name;
-        await AuditLog.create({
-          UserID: request.UserID,
-          RequestID: request.RequestID,
-          Action: 'Notify',
-          Details: `Reminder sent to ${userLabel} for request #${request.RequestID}`, 
-          Timestamp: new Date()
-        });
-
-        remindersSent++;
-      }
-    }
-
-    return {remindersSent,twoDaysFromNow};
-  },*/
   sendReminderForDueReturns: async () => {
     const now = new Date();
     
-    // Calculate the end of two days from now in UTC (23:59:59.999)
     const endOfTwoDaysFromNowUTC = new Date(Date.UTC(
       now.getUTCFullYear(),
       now.getUTCMonth(),
-      now.getUTCDate() + 2, // Add 2 days
+      now.getUTCDate() + 2, 
       23, 59, 59, 999
     ));
   
-    // Fetch all APPROVED requests where ReturnDate is <= endOfTwoDaysFromNowUTC
     const dueRequests = await BorrowRequest.findAll({
       where: {
-        Status: 'Approved', // Only check "Approved" requests
+        Status: 'Approved', 
         ReturnDate: {
-          [Op.lte]: endOfTwoDaysFromNowUTC // ReturnDate is <= 2 days from now
+          [Op.lte]: endOfTwoDaysFromNowUTC 
         }
       }
     });
@@ -259,13 +216,13 @@ const BorrowService = {
 
   getAllRequests: async (user) => {
     if (user.Role === 'Admin') {
-      // Admin sees all requests
+      
       return await BorrowRequest.findAll({
         order: [['RequestID', 'DESC']],
-        include: [User] // optionally include user details
+        include: [User] 
       });
     } else {
-      // Student sees only their requests
+      
       return await BorrowRequest.findAll({
         where: { UserID: user.UserID },
         order: [['RequestID', 'DESC']],
@@ -293,16 +250,13 @@ const BorrowService = {
     }
   },
   getItemsForRequest: async (user, requestID) => {
-    // 1. find the request
     const request = await BorrowRequest.findByPk(requestID);
     if (!request) throw new Error('Request not found');
 
-    // 2. If user is a Student, ensure it belongs to them
     if (user.Role === 'Student' && request.UserID !== user.UserID) {
       throw new Error('You do not have permission to view items for this request');
     }
 
-    // 3. get all borrowed items for that request
     const items = await BorrowedItem.findAll({
       where: { RequestID: requestID },
       include: [{ model: Equipment }]
@@ -311,8 +265,6 @@ const BorrowService = {
     return items;
   },
   getAllLogs: async () => {
-    // Return all logs sorted by newest first. 
-    // Include the user to see role (but Password is hidden by default scope).
     return await AuditLog.findAll({
       order: [['LogID', 'DESC']],
       include: [User]
