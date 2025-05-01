@@ -96,7 +96,7 @@ const EmailService = {
       from: process.env.EMAIL,
       to: studentEmail,
       subject: 'Equipment Return Reminder',
-      text: `Dear ${studentName},\n\nThis is a reminder that your borrow request #${requestID} is due on ${returnDate}.\Regards,\nFabtrack`
+      text: `Dear ${studentName},\n\nThis is a reminder that your borrow request #${requestID} is/was due on ${returnDate}.\Regards,\nFabtrack`
     };
 
     await transporter.sendMail(mailOptions);
