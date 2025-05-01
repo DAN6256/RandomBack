@@ -170,6 +170,7 @@ const BorrowService = {
   },
 
   sendReminderForDueReturns: async () => {
+    /*
     const twoDaysFromNow = new Date();
     twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
     twoDaysFromNow.setHours(0, 0, 0, 0); // Set time to midnight for consistency
@@ -181,9 +182,9 @@ const dueRequests = await BorrowRequest.findAll({
       [Op.eq]: twoDaysFromNow, // Compare dates ignoring time
     },
   },
-});
+});*/
 
-    /*const twoDaysFromNow = new Date();
+    const twoDaysFromNow = new Date();
     twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
 
     const dueRequests = await BorrowRequest.findAll({
@@ -191,7 +192,7 @@ const dueRequests = await BorrowRequest.findAll({
         Status: 'Approved',
         ReturnDate: twoDaysFromNow
       }
-    });*/
+    });
 
     let remindersSent = 0;
 
