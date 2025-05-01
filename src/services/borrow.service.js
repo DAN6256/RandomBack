@@ -168,22 +168,9 @@ const BorrowService = {
 
     return request;
   },
-
+/*
   sendReminderForDueReturns: async () => {
-    /*
-    const twoDaysFromNow = new Date();
-    twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
-    twoDaysFromNow.setHours(0, 0, 0, 0); // Set time to midnight for consistency
-
-const dueRequests = await BorrowRequest.findAll({
-  where: {
-    Status: 'Approved',
-    ReturnDate: {
-      [Op.eq]: twoDaysFromNow, // Compare dates ignoring time
-    },
-  },
-});*/
-
+   
     const twoDaysFromNow = new Date();
     twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
 
@@ -220,6 +207,54 @@ const dueRequests = await BorrowRequest.findAll({
     }
 
     return {remindersSent,twoDaysFromNow};
+  },*/
+  sendReminderForDueReturns: async () => {
+    const now = new Date();
+    
+    // Calculate the end of two days from now in UTC (23:59:59.999)
+    const endOfTwoDaysFromNowUTC = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 2, // Add 2 days
+      23, 59, 59, 999
+    ));
+  
+    // Fetch all APPROVED requests where ReturnDate is <= endOfTwoDaysFromNowUTC
+    const dueRequests = await BorrowRequest.findAll({
+      where: {
+        Status: 'Approved', // Only check "Approved" requests
+        ReturnDate: {
+          [Op.lte]: endOfTwoDaysFromNowUTC // ReturnDate is <= 2 days from now
+        }
+      }
+    });
+  
+    let remindersSent = 0;
+  
+    for (const request of dueRequests) {
+      const student = await User.findByPk(request.UserID);
+      if (student) {
+        await EmailService.sendReminder(student.Name, student.Email, request.RequestID, request.ReturnDate);
+        await Reminder.create({
+          RequestID: request.RequestID,
+          ReminderDate: new Date(),
+          Sent: true
+        });
+  
+        const userLabel = student.Role === 'Admin' ? 'the admin' : student.Name;
+        await AuditLog.create({
+          UserID: request.UserID,
+          RequestID: request.RequestID,
+          Action: 'Notify',
+          Details: `Reminder sent to ${userLabel} for request #${request.RequestID}`, 
+          Timestamp: new Date()
+        });
+  
+        remindersSent++;
+      }
+    }
+  
+    return { remindersSent, cutoffDate: endOfTwoDaysFromNowUTC };
   },
 
   getAllRequests: async (user) => {
