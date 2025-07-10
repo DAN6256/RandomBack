@@ -166,8 +166,10 @@ if (process.env.NODE_ENV === 'test') {
   });
 } else {
   // Absolute path to ca.pem
-  const caPath = path.join(__dirname, 'ca.pem');
-  const caCert = fs.readFileSync(caPath).toString();
+  //const caPath = path.join(__dirname, 'ca.pem');
+  //const caCert = fs.readFileSync(caPath).toString();
+  const caCert = process.env.CA_PEM;
+
 
   sequelize = new Sequelize(process.env.DB_URL, {
     dialect: 'postgres',
