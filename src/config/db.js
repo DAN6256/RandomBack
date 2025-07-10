@@ -112,7 +112,8 @@ if (process.env.NODE_ENV === 'test') {
   });
 } else {
   // Read Aiven CA cert from a local file, or paste directly if needed
-  const caCert = fs.readFileSync('aiven-ca.pem').toString(); // or embed the cert as a string
+  //const caCert = fs.readFileSync('aiven-ca.pem').toString(); // or embed the cert as a string
+  const caCert =process.env.CA_PEM.toString();
 
   sequelize = new Sequelize(process.env.DB_URL, {
     dialect: 'postgres',
