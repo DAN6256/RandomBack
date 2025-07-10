@@ -152,6 +152,8 @@ module.exports = { sequelize, connectDB };
 */
 
 const { Sequelize } = require('sequelize');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 let sequelize;
@@ -163,6 +165,10 @@ if (process.env.NODE_ENV === 'test') {
     logging: false
   });
 } else {
+  // Absolute path to ca.pem
+  const caPath = path.join(__dirname, 'ca.pem');
+  const caCert = fs.readFileSync(caPath).toString();
+
   sequelize = new Sequelize(process.env.DB_URL, {
     dialect: 'postgres',
     logging: false,
@@ -178,7 +184,8 @@ if (process.env.NODE_ENV === 'test') {
     dialectOptions: {
       ssl: {
         require: true,
-        rejectUnauthorized: false  // Accept self-signed certificates
+        rejectUnauthorized: true, 
+        ca: caCert                
       }
     }
   });
@@ -187,9 +194,9 @@ if (process.env.NODE_ENV === 'test') {
 const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log('Database connected successfully.');
+    console.log('Secure DB connection successful.');
   } catch (error) {
-    console.error('Database connection failed:', error.message);
+    console.error('Secure DB connection failed:', error.message);
     process.exit(1);
   }
 };
