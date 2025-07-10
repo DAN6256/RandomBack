@@ -131,7 +131,7 @@ if (process.env.NODE_ENV === 'test') {
     dialectOptions: {
       ssl: {
         require: true,
-        rejectUnauthorized: true,
+        rejectUnauthorized: false,
         ca: caCert
       }
     }
