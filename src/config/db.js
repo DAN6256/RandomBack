@@ -152,8 +152,6 @@ module.exports = { sequelize, connectDB };
 */
 
 const { Sequelize } = require('sequelize');
-const fs = require('fs');
-const path = require('path');
 require('dotenv').config();
 
 let sequelize;
@@ -165,29 +163,14 @@ if (process.env.NODE_ENV === 'test') {
     logging: false
   });
 } else {
-  // Absolute path to ca.pem
-  //const caPath = path.join(__dirname, 'ca.pem');
-  //const caCert = fs.readFileSync(caPath).toString();
-  const caCert = process.env.CA_PEM;
-
-
   sequelize = new Sequelize(process.env.DB_URL, {
     dialect: 'postgres',
     logging: false,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    },
-    define: {
-      timestamps: true
-    },
     dialectOptions: {
       ssl: {
         require: true,
-        rejectUnauthorized: true, 
-        ca: caCert                
+        rejectUnauthorized: true,
+        ca: process.env.CA_PEM.replace(/\\n/g, '\n')  // Convert \n to real newlines
       }
     }
   });
